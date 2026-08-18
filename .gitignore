@@ -243,3 +243,5 @@ libs/vulkan/*.so
 .vscode/*
 
 __pycache__**
+
+.idea/*

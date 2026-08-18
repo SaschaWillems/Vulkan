@@ -52,6 +52,94 @@ void android_main(android_app* state)																\
 	delete(vulkanExample);																			\
 }
 
+#elif defined(VK_USE_PLATFORM_OHOS)
+/**
+ * OHOS
+ */
+#define VULKAN_EXAMPLE_MAIN()                                                                       \
+VulkanExample vulkanExample;                                                                        \
+                                                                                                    \
+void OnSurfaceCreatedCB(OH_NativeXComponent *component, void *window) {                             \
+    LOGD("OnSurfaceCreatedCB");                                                                     \
+    uint64_t width, height;                                                                         \
+    int32_t ret = OH_NativeXComponent_GetXComponentSize(component, window, &width, &height);        \
+                                                                                                    \
+    if (!vulkanExample.initVulkan()) {                                                              \
+        LOGE("PluginRender::OnSurfaceCreated vulkanExample initVulkan FALSE");                      \
+        return;                                                                                     \
+    }                                                                                               \
+    nativeWindow = (static_cast<OHNativeWindow *>(window));                                         \
+    vulkanExample.prepare();                                                                        \
+    uv_async_send(&msgSignal);                                                                      \
+}                                                                                                   \
+                                                                                                    \
+void OnSurfaceChangedCB(OH_NativeXComponent *component, void *window) {                             \
+    LOGD("OnSurfaceChangedCB");                                                                     \
+}                                                                                                   \
+                                                                                                    \
+void OnSurfaceDestroyedCB(OH_NativeXComponent *component, void *window) {                           \
+    LOGD("OnSurfaceDestroyedCB");                                                                   \
+}                                                                                                   \
+                                                                                                    \
+void DispatchTouchEventCB(OH_NativeXComponent *component, void *window) {                           \
+    VulkanExample::handleAppInput(component, window, &vulkanExample);                               \
+}                                                                                                   \
+                                                                                                    \
+extern "C" napi_value Init(napi_env env, napi_value exports) {                                          \
+    napi_status status;                                                                             \
+    napi_value exportInstance = nullptr;                                                            \
+    OH_NativeXComponent *nativeXComponent = nullptr;                                                \
+    int32_t ret;                                                                                    \
+    char idStr[OH_XCOMPONENT_ID_LEN_MAX + 1] = {};                                                  \
+    uint64_t idSize = OH_XCOMPONENT_ID_LEN_MAX + 1;                                                 \
+    status = napi_get_named_property(env, exports, OH_NATIVE_XCOMPONENT_OBJ, &exportInstance);      \
+    if (status != napi_ok) {                                                                        \
+        LOGE("Export: napi_get_named_property fail");                                               \
+    }                                                                                               \
+    status = napi_unwrap(env, exportInstance, reinterpret_cast<void **>(&nativeXComponent));        \
+    if (status != napi_ok) {                                                                        \
+        LOGE("Export: napi_unwrap failed status[%{public}d]", status);                              \
+    }                                                                                               \
+    napi_value global;                                                                              \
+    status = napi_get_global(env, &global);                                                         \
+    status = napi_get_named_property(env, global, "globalThis", &global);                           \
+    napi_value densityDPI;                                                                          \
+    status = napi_get_named_property(env, global, "densityDPI", &densityDPI);                       \
+    double density = 0.0f;                                                                          \
+    napi_get_value_double(env, densityDPI, &density);                                               \
+    vks::OHOS::setDeviceConfig(density);                                                            \
+    napi_value context;                                                                             \
+    status = napi_get_named_property(env, global, "context", &context);                             \
+    napi_value resourceManager = NULL;                                                              \
+    status = napi_get_named_property(env, context, "resourceManager", &resourceManager);            \
+    NativeResourceManager *nativeResourceManager = OH_ResourceManager_InitNativeResourceManager(env, resourceManager);  \
+    ResourceManager::getInstance().initialize(nativeResourceManager);                               \
+    status = napi_get_uv_event_loop(env, &loop);                                                    \
+    msgSignal.data = &vulkanExample;                                                                \
+                                                                                                    \
+    int uv_status = uv_async_init(loop, &msgSignal, VulkanExampleBase::onMessageCallbackStatic);    \
+    static OH_NativeXComponent_Callback callback;                                                   \
+    callback.OnSurfaceCreated = OnSurfaceCreatedCB;                                                 \
+    callback.OnSurfaceChanged = OnSurfaceChangedCB;                                                 \
+    callback.OnSurfaceDestroyed = OnSurfaceDestroyedCB;                                             \
+    callback.DispatchTouchEvent = DispatchTouchEventCB;                                             \
+                                                                                                    \
+    OH_NativeXComponent_RegisterCallback(nativeXComponent, &callback);                              \
+    return exports;                                                                                 \
+}                                                                                                   \
+                                                                                                    \
+static napi_module demoModule = {                                                                   \
+    .nm_version = 1,                                                                                \
+    .nm_flags = 0,                                                                                  \
+    .nm_filename = nullptr,                                                                         \
+    .nm_register_func = Init,                                                                       \
+    .nm_modname = "nativerender_triangle",                                                          \
+    .nm_priv = ((void *)0),                                                                         \
+    .reserved = {0},                                                                                \
+};                                                                                                  \
+                                                                                                    \
+extern "C" __attribute__((constructor)) void RegisterEntryModule(void) { napi_module_register(&demoModule); }
+
 #elif defined(_DIRECT2DISPLAY)
 /*
  * Direct-to-display

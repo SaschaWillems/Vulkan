@@ -20,6 +20,14 @@
 #include <android_native_app_glue.h>
 #include <sys/system_properties.h>
 #include "VulkanAndroid.h"
+#elif defined(VK_USE_PLATFORM_OHOS)
+#include <ace/xcomponent/native_interface_xcomponent.h>
+#include <rawfile/raw_file_manager.h>
+#include "uv.h"
+#include "VulkanOHOS.h"
+extern NativeWindow* nativeWindow;
+extern uv_loop_t* loop;
+extern uv_async_t msgSignal;
 #elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
 #include <directfb.h>
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
@@ -241,6 +249,17 @@ public:
 	bool touchDown = false;
 	double touchTimer = 0.0;
 	int64_t lastTapTime = 0;
+#elif defined (__OHOS__)
+    NativeResourceManager* s_nativeResourceManager;
+    bool focused = false;
+    struct TouchPos {
+        int32_t x;
+        int32_t y;
+    } touchPos;
+    bool touchDown = false;
+    double touchTimer = 0.0;
+    int64_t lastTapTime = 0;
+    int64_t touchDownTime = 0;
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
 	void* view;
 #if defined(VK_USE_PLATFORM_METAL_EXT)
@@ -301,6 +320,12 @@ public:
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	static int32_t handleAppInput(struct android_app* app, AInputEvent* event);
 	static void handleAppCommand(android_app* app, int32_t cmd);
+#elif defined(VK_USE_PLATFORM_OHOS)
+    static void handleAppInput(OH_NativeXComponent *component, void *window, void* pThis);
+    // Static callback for libuv async handle
+    static void onMessageCallbackStatic(uv_async_t* handle);
+    // Instance method called from static callback
+    void onMessageCallback();
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
 	void* setupWindow(void* view);
 	void displayLinkOutputCb();
