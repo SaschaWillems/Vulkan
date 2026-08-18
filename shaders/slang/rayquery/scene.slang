@@ -1,4 +1,4 @@
-/* Copyright (c) 2025, Sascha Willems
+/* Copyright (c) 2025-2026, Sascha Willems
  *
  * SPDX-License-Identifier: MIT
  *
@@ -74,7 +74,7 @@ float4 fragmentMain(VSOutput input)
 
     // If the intersection has hit a triangle, the fragment is shadowed
     if (rayQuery.CommittedStatus() == COMMITTED_TRIANGLE_HIT) {
-        color *= 0.1;
+        color.rgb *= 0.1;
 	}
 
     return color;
