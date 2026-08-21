@@ -12,7 +12,7 @@
 #if (defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
 #include <Cocoa/Cocoa.h>
 #include <QuartzCore/CAMetalLayer.h>
-#include <CoreVideo/CVDisplayLink.h>
+#include <QuartzCore/CAMetalDisplayLink.h>
 #endif
 #else // !defined(VK_EXAMPLE_XCODE_GENERATED)
 #if defined(VK_USE_PLATFORM_METAL_EXT)
@@ -1661,18 +1661,6 @@ const std::string getShaderBasePath() {
 #endif
 }
 
-static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
-	const CVTimeStamp *inOutputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut,
-	void *displayLinkContext)
-{
-	@autoreleasepool
-	{
-		auto vulkanExample = static_cast<VulkanExampleBase*>(displayLinkContext);
-			vulkanExample->displayLinkOutputCb();
-	}
-	return kCVReturnSuccess;
-}
-
 @interface View : NSView<NSWindowDelegate>
 {
 @public
@@ -1683,7 +1671,7 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 
 @implementation View
 {
-	CVDisplayLinkRef displayLink;
+	CAMetalDisplayLink* displayLink;
 }
 
 - (instancetype)initWithFrame:(NSRect)frameRect
@@ -1699,11 +1687,9 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 
 - (void)viewDidMoveToWindow
 {
-	CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
-	// SRS - Disable displayLink vsync rendering in favour of max frame rate concurrent rendering
+	// SRS - Use CAMetalDisplayLink for max frame rate concurrent rendering vs CADisplayLink vsync callback rendering
 	//     - vsync command line option (-vs) on macOS now works like other platforms (using VK_PRESENT_MODE_FIFO_KHR)
-	//CVDisplayLinkSetOutputCallback(displayLink, &displayLinkOutputCallback, vulkanExample);
-	CVDisplayLinkStart(displayLink);
+	displayLink = [[CAMetalDisplayLink alloc] initWithMetalLayer:[CAMetalLayer layer]];
 }
 
 - (BOOL)acceptsFirstResponder
@@ -1862,8 +1848,7 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 
 - (void)windowWillClose:(NSNotification *)notification
 {
-	CVDisplayLinkStop(displayLink);
-	CVDisplayLinkRelease(displayLink);
+	[displayLink invalidate];
 }
 
 @end
@@ -1914,7 +1899,7 @@ void VulkanExampleBase::displayLinkOutputCb()
 {
 #if defined(VK_EXAMPLE_XCODE_GENERATED)
 	if (benchmark.active) {
-		benchmark.run([=] { render(); }, vulkanDevice->properties);
+		benchmark.run([=, this] { render(); }, vulkanDevice->properties);
 		if (benchmark.filename != "") {
 			benchmark.saveResults();
 		}
