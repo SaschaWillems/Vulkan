@@ -8,6 +8,7 @@
 #import "DemoViewController.h"
 #import "AppDelegate.h"
 #import <QuartzCore/CAMetalLayer.h>
+#import <QuartzCore/CADisplayLink.h>
 
 #include "MVKExample.h"
 
@@ -19,17 +20,6 @@ const std::string getShaderBasePath() {
 	return [NSBundle.mainBundle.resourcePath stringByAppendingString: @"/shaders/"].UTF8String;
 }
 
-/** Rendering loop callback function for use with a CVDisplayLink. */
-static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
-                                    const CVTimeStamp* now,
-                                    const CVTimeStamp* outputTime,
-                                    CVOptionFlags flagsIn,
-                                    CVOptionFlags* flagsOut,
-                                    void* target) {
-    ((MVKExample*)target)->displayLinkOutputCb();   // SRS - Call displayLinkOutputCb() to render/animate at displayLink frame rate
-    return kCVReturnSuccess;
-}
-
 CALayer* layer;
 MVKExample* _mvkExample;
 
@@ -37,29 +27,40 @@ MVKExample* _mvkExample;
 #pragma mark DemoViewController
 
 @implementation DemoViewController {
-    CVDisplayLinkRef _displayLink;
+	CADisplayLink* _displayLink;
 }
 
-/** Since this is a single-view app, initialize Vulkan during view loading. */
+/** Since this is a single-view app, initialize when the view is loaded. */
 -(void) viewDidLoad {
 	[super viewDidLoad];
-
-	self.view.wantsLayer = YES;		// Back the view with a layer created by the makeBackingLayer method (called immediately on set)
-
-    _mvkExample = new MVKExample(self.view, layer.contentsScale);	// SRS - Use backing layer scale factor for UIOverlay on macOS
 
 	// SRS - Enable AppDelegate to call into DemoViewController for handling application lifecycle events (e.g. termination)
 	auto appDelegate = (AppDelegate *)NSApplication.sharedApplication.delegate;
 	appDelegate.viewController = self;
-	
-    CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
-    CVDisplayLinkSetOutputCallback(_displayLink, &DisplayLinkCallback, _mvkExample);
-    CVDisplayLinkStart(_displayLink);
+}
+
+/** Initialize Vulkan and DisplayLink after the view appears - allows for better debug messaging. */
+-(void) viewDidAppear {
+	[super viewDidAppear];
+
+	self.view.wantsLayer = YES;		// Back the view with a layer created by the makeBackingLayer method (called immediately on set)
+
+	_mvkExample = new MVKExample(self.view, layer.contentsScale);	// SRS - Use backing layer scale factor for UIOverlay on macOS
+
+	// SRS - Initialize DisplayLink after Vulkan is ready and set render loop to run at 60 fps
+	const float fps = 60.0;
+	_displayLink = [self.view displayLinkWithTarget: self selector: @selector(renderFrame:)];
+	[_displayLink setPreferredFrameRateRange: CAFrameRateRangeMake( fps, fps, fps )];
+	[_displayLink addToRunLoop: NSRunLoop.mainRunLoop forMode: NSRunLoopCommonModes];
+}
+
+-(void) renderFrame:(CADisplayLink *)sender {
+	_mvkExample->displayLinkOutputCb();   // SRS - Call displayLinkOutputCb() to render/animate at displayLink frame rate
 }
 
 -(void) shutdownExample {
-	CVDisplayLinkStop(_displayLink);
-    CVDisplayLinkRelease(_displayLink);
+	_displayLink.paused = YES;
+	_displayLink = nil;
     delete _mvkExample;
 }
 
@@ -178,13 +179,11 @@ MVKExample* _mvkExample;
     _mvkExample->scrollWheel(wheelDelta);
 }
 
-- (void)windowWillEnterFullScreen:(NSNotification *)notification
-{
+-(void) windowWillEnterFullScreen:(NSNotification *)notification {
 	_mvkExample->fullScreen(true);
 }
 
-- (void)windowWillExitFullScreen:(NSNotification *)notification
-{
+-(void) windowWillExitFullScreen:(NSNotification *)notification {
 	_mvkExample->fullScreen(false);
 }
 

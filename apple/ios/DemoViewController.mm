@@ -90,10 +90,10 @@ CALayer* layer;
 	_mvkExample = new MVKExample(_demoView, UIOverlayScale);
 
 	// SRS - Initialize DisplayLink after Vulkan is ready and set render loop to run at 60 fps
-	uint32_t fps = 60;
+	const float fps = 60.0;
 	_displayLink = [CADisplayLink displayLinkWithTarget: self selector: @selector(renderFrame)];
-	[_displayLink setFrameInterval: 60 / fps];
-	[_displayLink addToRunLoop: NSRunLoop.currentRunLoop forMode: NSDefaultRunLoopMode];
+	[_displayLink setPreferredFrameRateRange: CAFrameRateRangeMake( fps, fps, fps )];
+	[_displayLink addToRunLoop: NSRunLoop.mainRunLoop forMode: NSRunLoopCommonModes];
 
     _viewHasAppeared = YES;
 	_appInForeground = YES;
@@ -102,22 +102,22 @@ CALayer* layer;
 -(BOOL) canBecomeFirstResponder { return _viewHasAppeared; }
 
 -(void) renderFrame {
-	if (_appInForeground)
-	{
+	if (_appInForeground) {
 		_mvkExample->displayLinkOutputCb();   // SRS - Call displayLinkOutputCb() to render/animate at displayLink frame rate
 	}
 }
 
-- (void)appInForeground {
+-(void) appInForeground {
 	_appInForeground = YES;
 }
 
-- (void)appInBackground {
+-(void) appInBackground {
 	_appInForeground = NO;
 }
 
 -(void) shutdownExample {
-	[_displayLink invalidate];
+	_displayLink.paused = YES;
+	_displayLink = nil;
 	delete _mvkExample;
 }
 
