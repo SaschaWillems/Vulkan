@@ -302,6 +302,23 @@ void vkglTF::Texture::fromglTfImage(tinygltf::Image &gltfimage, std::string path
 		AAsset_close(asset);
 		result = ktxTexture_CreateFromMemory(textureData, size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
 		delete[] textureData;
+#elif defined (__OHOS__)
+        NativeResourceManager* resourceMgr = ResourceManager::getInstance().getNativeResourceManager();
+        if (!resourceMgr) {
+             vks::tools::exitFatal("ResourceManager not initialized. Call ResourceManager::getInstance().initialize() first.", -1);
+        }
+
+        RawFile *rawfile = OH_ResourceManager_OpenRawFile(resourceMgr, filename.c_str());
+        if (!rawfile) {
+             vks::tools::exitFatal("Could not load texture from " + filename + "\n\nMake sure the assets submodule has been checked out and is up-to-date.", -1);
+        }
+        size_t size = OH_ResourceManager_GetRawFileSize(rawfile);
+        assert(size > 0);
+        ktx_uint8_t *textureData = new ktx_uint8_t[size];
+        OH_ResourceManager_ReadRawFile(rawfile, textureData, size);
+        OH_ResourceManager_CloseRawFile(rawfile);
+        result = ktxTexture_CreateFromMemory(textureData, size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
+        delete[] textureData;
 #else
 		if (!vks::tools::fileExists(filename)) {
 			vks::tools::exitFatal("Could not load texture from " + filename + "\n\nMake sure the assets submodule has been checked out and is up-to-date.", -1);
@@ -1190,6 +1207,8 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 	// On Android all assets are packed with the apk in a compressed form, so we need to open them using the asset manager
 	// We let tinygltf handle this, by passing the asset manager of our app
 	tinygltf::asset_manager = androidApp->activity->assetManager;
+#elif defined (__OHOS__)
+    tinygltf::rawfile_manager = ResourceManager::getInstance().getNativeResourceManager();
 #endif
 	size_t pos = filename.find_last_of('/');
 	path = filename.substr(0, pos);
@@ -1202,6 +1221,8 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 	// On Android all assets are packed with the apk in a compressed form, so we need to open them using the asset manager
 	// We let tinygltf handle this, by passing the asset manager of our app
 	tinygltf::asset_manager = androidApp->activity->assetManager;
+#elif defined (__OHOS__)
+    tinygltf::rawfile_manager = ResourceManager::getInstance().getNativeResourceManager(); 
 #endif
 	bool fileLoaded = gltfContext.LoadASCIIFromFile(&gltfModel, &error, &warning, filename);
 

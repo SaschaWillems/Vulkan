@@ -31,6 +31,8 @@
 #elif defined(__ANDROID__)
 #include "VulkanAndroid.h"
 #include <android/asset_manager.h>
+#elif defined(__OHOS__)
+#include "VulkanOHOS.h"
 #endif
 
 // Custom define for better code readability
@@ -49,6 +51,17 @@
 		LOGE("%s", message.c_str());																	\
 		vks::tools::exitFatal(message, -1);																\
 	}																									\
+}
+#elif defined (__OHOS__)
+#define VK_CHECK_RESULT(f)                                                                              \
+{                                                                                                       \
+    VkResult res = (f);                                                                                 \
+    if (res != VK_SUCCESS)                                                                              \
+    {                                                                                                   \
+        LOGE("Fatal : VkResult is \" %s \" in %s at line %d",                                           \
+           vks::tools::errorString(res).c_str(), __FILE__, __LINE__);                                   \
+        assert(res == VK_SUCCESS);                                                                      \
+    }                                                                                                   \
 }
 #else
 #define VK_CHECK_RESULT(f)																				\
@@ -130,6 +143,8 @@ namespace vks
 		// Load a SPIR-V shader (binary)
 #if defined(__ANDROID__)
 		VkShaderModule loadShader(AAssetManager* assetManager, const char *fileName, VkDevice device);
+#elif defined (__OHOS__)
+VkShaderModule loadShader(const char *fileName, VkDevice device);
 #else
 		VkShaderModule loadShader(const char *fileName, VkDevice device);
 #endif
