@@ -429,6 +429,10 @@
 #   include "../examples/dynamicrendering/dynamicrendering.cpp"
 #endif
 
+#ifdef MVK_dynamicrenderinglocalread
+#   include "../examples/dynamicrenderinglocalread/dynamicrenderinglocalread.cpp"
+#endif
+
 #ifdef MVK_dynamicrenderingmultisampling
 #   include "../examples/dynamicrenderingmultisampling/dynamicrenderingmultisampling.cpp"
 #endif
@@ -446,6 +450,11 @@
 // Does not run. Requires VK_EXT_descriptor_heap.
 #ifdef MVK_descriptorheap
 #   include "../examples/descriptorheap/descriptorheap.cpp"
+#endif
+
+// Does not run. Requires VK_EXT_descriptor_heap and VK_KHR_shader_untyped_pointers.
+#ifdef MVK_descriptorheapuntyped
+#   include "../examples/descriptorheapuntyped/descriptorheapuntyped.cpp"
 #endif
 
 // Does not run. Requires VK_EXT_descriptor_buffer.

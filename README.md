@@ -469,6 +469,10 @@ Vulkan is an extensible api with lots of functionality added by extensions. Thes
 
     Basic sample showing how to use descriptor heaps, which fully replace Vulkan's original descriptor system. [Khronos blog](https://www.khronos.org/blog/vulkan-introduces-roadmap-2026-and-new-descriptor-heap-extension#descriptor_heaps).
 
+- [Descriptor heap (untyped pointers)](./examples/descriptorheapuntyped/) - `VK_EXT_descriptor_heap` and `VK_KHR_shader_untyped_pointers`
+
+    Basic sample showing how to use descriptor heaps in combination with `VK_KHR_shader_untyped_pointers´ for a more direct way to access heap data.
+
 - [Descriptor buffers](./examples/descriptorbuffer/) - `VK_EXT_descriptor_buffer`
 
     Basic sample showing how to use descriptor buffers to replace descriptor sets.

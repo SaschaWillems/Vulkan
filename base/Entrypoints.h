@@ -9,7 +9,6 @@
  */
 
 #include "VulkanOHOS.h"
-#include <js_native_api.h>
 #if defined(_WIN32)
 /*
  * Windows
