@@ -8,6 +8,7 @@
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
 
+#include "VulkanOHOS.h"
 #if defined(_WIN32)
 /*
  * Windows
@@ -108,6 +109,17 @@ extern "C" napi_value Init(napi_env env, napi_value exports) {                  
     double density = 0.0f;                                                                          \
     napi_get_value_double(env, densityDPI, &density);                                               \
     vks::OHOS::setDeviceConfig(density);                                                            \
+    napi_value filesDirNapi;                                                                        \
+    status = napi_get_named_property(env, global, "filesDir", &filesDirNapi);                       \
+    napi_valuetype valueType;                                                                       \
+    napi_typeof(env, filesDirNapi, &valueType);                                                     \
+    if (valueType == napi_string) {                                                                 \ 
+        size_t strSize = 0;                                                                         \
+        napi_get_value_string_utf8(env, filesDirNapi, nullptr, 0, &strSize);                        \
+        std::string filesDir(strSize, '\0');                                                        \
+        napi_get_value_string_utf8(env, filesDirNapi, &filesDir[0], strSize + 1, &strSize);         \
+        vks::OHOS::setFilesDir(filesDir);                                                           \
+    }                                                                                               \
     napi_value context;                                                                             \
     status = napi_get_named_property(env, global, "context", &context);                             \
     napi_value resourceManager = NULL;                                                              \

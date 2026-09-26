@@ -7,6 +7,7 @@
 #ifndef VULKANEXAMPLES_VULKANOHOS_H
 #define VULKANEXAMPLES_VULKANOHOS_H
 
+#include <string>
 #if defined(__OHOS__)
 #include <memory>
 #include <mutex>
@@ -20,19 +21,23 @@
 #define LOGW(...) ((void)OH_LOG_Print(LOG_APP, LOG_WARN, APP_LOG_DOMAIN, APP_LOG_TAG, __VA_ARGS__))
 #define LOGE(...) ((void)OH_LOG_Print(LOG_APP, LOG_ERROR, APP_LOG_DOMAIN, APP_LOG_TAG, __VA_ARGS__))
 
-namespace vks 
+namespace vks
 {
     namespace OHOS
     {
         const int32_t DOUBLE_TAP_TIMEOUT = 300 * 1000000;
         const int32_t TAP_TIMEOUT = 180 * 1000000;
 		const int32_t DOUBLE_TAP_SLOP = 100;
-		const int32_t TAP_SLOP = 8; 
+		const int32_t TAP_SLOP = 8;
 
 		/** @brief Density of the device screen (in DPI) */
 		extern int32_t screenDensity;
 
         void setDeviceConfig(int screenDesity);
+
+        extern std::string filesDir;
+
+        void setFilesDir(std::string filesDir);
     }
 }
 

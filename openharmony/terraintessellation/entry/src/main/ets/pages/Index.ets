@@ -1,0 +1,43 @@
+/*
+ * Copyright (C) 2018 by Sascha Willems - www.saschawillems.de
+ *
+ * HarmonyOS port Copyright (C) 2026 by luzehui
+ *
+ * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ */
+import display from '@ohos.display';
+
+@Entry
+@Component
+struct Index {
+  @State message: string = 'terraintessellation'
+  private context: object | undefined = undefined;
+
+  aboutToAppear(): void {
+    let config : display.Display = display.getDefaultDisplaySync();
+    globalThis.context = getContext(this);
+    globalThis.densityDPI = config.densityDPI;
+    globalThis.filesDir = getContext(this).getApplicationContext().filesDir;
+  }
+
+  build() {
+    Stack() {
+      XComponent({
+        id: 'xcomponentId',
+        type: XComponentType.SURFACE,
+        libraryname: this.message
+      })
+        .onLoad((xComponentContext) => {
+          this.context = xComponentContext
+        })
+        .onDestroy(() => {
+          console.info('onDestroy');
+        })
+        .id('xcomponent')
+        .width('100%')
+        .height('100%')
+    }
+    .width('100%')
+    .height('100%')
+  }
+}

@@ -4,7 +4,6 @@ project(bloom)
 
 set(NAME bloom)
 
-# ../../..：项目根目录位置
 set(SRC_DIR ../../../../../../examples/${NAME})
 set(BASE_DIR ../../../../../../base)
 set(EXTERNAL_DIR ../../../../../../external)

@@ -452,6 +452,8 @@ public:
 		// On Android all assets are packed with the apk in a compressed form, so we need to open them using the asset manager
 		// We let tinygltf handle this, by passing the asset manager of our app
 		tinygltf::asset_manager = androidApp->activity->assetManager;
+#elif defined (__OHOS__)
+        tinygltf::rawfile_manager = ResourceManager::getInstance().getNativeResourceManager(); 
 #endif
 		bool fileLoaded = gltfContext.LoadASCIIFromFile(&glTFInput, &error, &warning, filename);
 

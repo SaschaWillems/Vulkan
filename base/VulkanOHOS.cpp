@@ -65,10 +65,16 @@ void ResourceManager::reset() {
 
 int32_t vks::OHOS::screenDensity;
 
+std::string vks::OHOS::filesDir;
+
 namespace vks {
     namespace OHOS {
         void setDeviceConfig(int screenDensity) {
             vks::OHOS::screenDensity = screenDensity;
+        }
+
+        void setFilesDir(std::string filesDir) {
+            vks::OHOS::filesDir = filesDir;
         }
     }
 }
