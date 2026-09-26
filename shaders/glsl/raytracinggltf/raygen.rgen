@@ -18,8 +18,9 @@ layout(binding = 2, set = 0) uniform CameraProperties
 	uint frame;
 } cam;
 
-layout(location = 0) rayPayloadEXT vec3 hitValue;
-layout(location = 3) rayPayloadEXT uint payloadSeed;
+#include "payload.glsl"
+
+layout(location = 0) rayPayloadEXT RayPayload payload;
 
 #include "random.glsl"
 
@@ -48,16 +49,16 @@ void main()
 	float tmin = 0.001;
 	float tmax = 10000.0;
 
-    hitValue = vec3(0.0);
+    payload.hitValue = vec3(0.0);
 	vec3 hitValues = vec3(0);
 
 	const int samples = 4;
 
 	// Trace multiple rays for e.g. transparency
 	 for(int smpl = 0; smpl < samples; smpl++) {
-		payloadSeed = tea(gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x, cam.frame);
+		payload.seed = tea(gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x, cam.frame);
 		traceRayEXT(topLevelAS, gl_RayFlagsNoneEXT, 0xff, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
-		hitValues += hitValue;
+		hitValues += payload.hitValue;
 	}
 
 //	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(hitValues / float(samples), 0.0));

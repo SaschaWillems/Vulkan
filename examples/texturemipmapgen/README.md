@@ -60,7 +60,7 @@ vkCmdCopyBufferToImage(copyCmd, stagingBuffer, texture.image, VK_IMAGE_LAYOUT_TR
 ```
 
 ### Prepare base mip level
-As we are going to blit ***from*** the base mip-level just uploaded we also need to set insert an image memory barrier that sets the image layout to ```TRANSFER_SRC``` for the base mip level:
+As we are going to blit ***from*** the base mip-level just uploaded we also need to insert an image memory barrier that sets the image layout to ```TRANSFER_SRC``` for the base mip level:
 
 ```cpp
 VkImageSubresourceRange subresourceRange = {};
@@ -167,7 +167,7 @@ After the blit is done we can use this mip level as a base for the next level, s
 ```
 
 ### Final image layout transitions
-Once the loop is done we need to transition all mip levels of the image to their actual usage layout, which is ```SHADER_READ``` for this example. Note that after the loop all levels will be in the ```TRANSER_SRC``` layout allowing us to transfer the whole image at once:
+Once the loop is done we need to transition all mip levels of the image to their actual usage layout, which is ```SHADER_READ``` for this example. Note that after the loop all levels will be in the ```TRANSFER_SRC``` layout allowing us to transfer the whole image at once:
 
 ```cpp
   subresourceRange.levelCount = texture.mipLevels;

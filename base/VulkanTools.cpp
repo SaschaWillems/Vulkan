@@ -1,7 +1,7 @@
 /*
  * Assorted commonly used Vulkan helper functions
  *
- * Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2016-2026 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -277,7 +277,7 @@ namespace vks
 				// Make sure any writes to the image have been finished
 				if (imageMemoryBarrier.srcAccessMask == 0)
 				{
-					imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+					imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 				}
 				imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 				break;

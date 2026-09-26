@@ -37,7 +37,7 @@ if args.sample != None:
         print("ERROR: No directory found with name %s" % compile_single_sample)
         exit(-1)
 
-file_extensions = tuple([".vert", ".frag", ".comp", ".geom", ".tesc", ".tese", ".rgen", ".rchit", ".rmiss", ".mesh", ".task"])
+file_extensions = tuple([".vert", ".frag", ".comp", ".geom", ".tesc", ".tese", ".rgen", ".rchit", ".rint", ".rmiss", ".mesh", ".task"])
 
 dxc_path = findDXC()
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -69,6 +69,7 @@ for root, dirs, files in os.walk(dir_path):
                 profile = 'ds_6_1'
             elif(hlsl_file.find('.rgen') != -1 or
 				hlsl_file.find('.rchit') != -1 or
+				hlsl_file.find('.rint') != -1 or
 				hlsl_file.find('.rmiss') != -1):
                 target='-fspv-target-env=vulkan1.2'
                 profile = 'lib_6_3'
