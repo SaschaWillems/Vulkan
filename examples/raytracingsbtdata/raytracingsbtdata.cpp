@@ -4,7 +4,7 @@
 * Uses the data section of each shader binding table record to color the background and geometry
 *
 * Example by Nate Morrical (https://github.com/natevm)
-* 
+*
 * Copyright (C) 2019-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
@@ -135,7 +135,7 @@ public:
 		}
 	}
 
-	/*	
+	/*
 		Create a scratch buffer to hold temporary data for a ray tracing acceleration structure
 	*/
 	RayTracingScratchBuffer createScratchBuffer(VkDeviceSize size)
@@ -171,7 +171,7 @@ public:
 		return scratchBuffer;
 	}
 
-	void deleteScratchBuffer(RayTracingScratchBuffer& scratchBuffer) 
+	void deleteScratchBuffer(RayTracingScratchBuffer& scratchBuffer)
 	{
 		if (scratchBuffer.memory != VK_NULL_HANDLE) {
 			vkFreeMemory(device, scratchBuffer.memory, nullptr);
@@ -322,7 +322,7 @@ public:
 		VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress{};
 		VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress{};
 		VkDeviceOrHostAddressConstKHR transformBufferDeviceAddress{};
-		
+
 		vertexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(vertexBuffer.buffer);
 		indexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(indexBuffer.buffer);
 		transformBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(transformBuffer.buffer);
@@ -342,7 +342,7 @@ public:
 		accelerationStructureGeometry.geometry.triangles.transformData.deviceAddress = 0;
 		accelerationStructureGeometry.geometry.triangles.transformData.hostAddress = nullptr;
 		accelerationStructureGeometry.geometry.triangles.transformData = transformBufferDeviceAddress;
-		
+
 		// Get size info
 		VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo{};
 		accelerationStructureBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
@@ -350,7 +350,7 @@ public:
 		accelerationStructureBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
 		accelerationStructureBuildGeometryInfo.geometryCount = 1;
 		accelerationStructureBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
-		
+
 		const uint32_t numTriangles = 1;
 		VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{};
 		accelerationStructureBuildSizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
@@ -462,7 +462,7 @@ public:
 		VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{};
 		accelerationStructureBuildSizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
 		vkGetAccelerationStructureBuildSizesKHR(
-			device, 
+			device,
 			VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
 			&accelerationStructureBuildGeometryInfo,
 			&primitive_count,
@@ -549,9 +549,9 @@ public:
 		const VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 		const VkMemoryPropertyFlags memoryUsageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-		// We allocate space for the handle (which is like lambda function pointers to call in the ray tracing pipeline) 
+		// We allocate space for the handle (which is like lambda function pointers to call in the ray tracing pipeline)
 		// as well as the data to pass to those functions (which act as the variables being "captured" by those lambda functions)
-		uint32_t bufferSize = vks::tools::alignedSize(handleSize + 3 * sizeof(float), rayTracingPipelineProperties.shaderGroupBaseAlignment);
+		uint32_t bufferSize = vks::tools::alignedSize(handleSize + (uint32_t)(3 * sizeof(float)), rayTracingPipelineProperties.shaderGroupBaseAlignment);
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &raygenShaderBindingTable, bufferSize));
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &missShaderBindingTable, bufferSize));
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &hitShaderBindingTable, bufferSize));
@@ -763,7 +763,7 @@ public:
 
 	void getEnabledFeatures()
 	{
-		// Enable features required for ray tracing using feature chaining via pNext		
+		// Enable features required for ray tracing using feature chaining via pNext
 		enabledBufferDeviceAddresFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
 		enabledBufferDeviceAddresFeatures.bufferDeviceAddress = VK_TRUE;
 
@@ -828,7 +828,7 @@ public:
 		}
 
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
-		
+
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
@@ -845,17 +845,17 @@ public:
 		// that we use to store our color data
 		VkStridedDeviceAddressRegionKHR raygenShaderSbtEntry{};
 		raygenShaderSbtEntry.deviceAddress = getBufferDeviceAddress(raygenShaderBindingTable.buffer);
-		raygenShaderSbtEntry.size = vks::tools::alignedSize(handleSizeAligned + 3 * sizeof(float), rayTracingPipelineProperties.shaderGroupBaseAlignment);
+		raygenShaderSbtEntry.size = vks::tools::alignedSize(handleSizeAligned + (uint32_t)(3 * sizeof(float)), rayTracingPipelineProperties.shaderGroupBaseAlignment);
 		raygenShaderSbtEntry.stride = raygenShaderSbtEntry.size;
 
 		VkStridedDeviceAddressRegionKHR missShaderSbtEntry{};
 		missShaderSbtEntry.deviceAddress = getBufferDeviceAddress(missShaderBindingTable.buffer);
-		missShaderSbtEntry.size = vks::tools::alignedSize(handleSizeAligned + 3 * sizeof(float), rayTracingPipelineProperties.shaderGroupBaseAlignment);
+		missShaderSbtEntry.size = vks::tools::alignedSize(handleSizeAligned + (uint32_t)(3 * sizeof(float)), rayTracingPipelineProperties.shaderGroupBaseAlignment);
 		missShaderSbtEntry.stride = missShaderSbtEntry.size;
 
 		VkStridedDeviceAddressRegionKHR hitShaderSbtEntry{};
 		hitShaderSbtEntry.deviceAddress = getBufferDeviceAddress(hitShaderBindingTable.buffer);
-		hitShaderSbtEntry.size = vks::tools::alignedSize(handleSizeAligned + 3 * sizeof(float), rayTracingPipelineProperties.shaderGroupBaseAlignment);
+		hitShaderSbtEntry.size = vks::tools::alignedSize(handleSizeAligned + (uint32_t)(3 * sizeof(float)), rayTracingPipelineProperties.shaderGroupBaseAlignment);
 		hitShaderSbtEntry.stride = hitShaderSbtEntry.size;
 
 		VkStridedDeviceAddressRegionKHR callableShaderSbtEntry{};

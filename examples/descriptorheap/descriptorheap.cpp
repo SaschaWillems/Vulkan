@@ -152,10 +152,10 @@ public:
 
 		// Sampler heap
 		// We need to calculate some aligned offsets, heaps and strides to make sure we properly accress the descriptors
-		samplerDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.samplerDescriptorSize, descriptorHeapProperties.samplerDescriptorAlignment);
+		samplerDescriptorSize = vks::tools::alignedSize(descriptorHeapProperties.samplerDescriptorSize, descriptorHeapProperties.samplerDescriptorAlignment);
 
 		// Size calculations for the heap also need to accomodate for the reserved range, used by the driver for internal bookkeeping
-		const VkDeviceSize heapSizeSamplers = vks::tools::alignedVkSize(samplerDescriptorSize * 2 + descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerHeapAlignment);
+		const VkDeviceSize heapSizeSamplers = vks::tools::alignedSize(samplerDescriptorSize * 2 + descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerHeapAlignment);
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -203,13 +203,13 @@ public:
 		VK_CHECK_RESULT(vkWriteSamplerDescriptorsEXT(device, static_cast<uint32_t>(samplerCreateInfos.size()), samplerCreateInfos.data(), hostAddressRangesSamplers.data()));
 
 		// Resource heap (buffers and images)
-		bufferDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.bufferDescriptorSize, descriptorHeapProperties.bufferDescriptorAlignment);
-		imageDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
+		bufferDescriptorSize = vks::tools::alignedSize(descriptorHeapProperties.bufferDescriptorSize, descriptorHeapProperties.bufferDescriptorAlignment);
+		imageDescriptorSize = vks::tools::alignedSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 		// Images are stored after the last buffer (aligned)
-		imageHeapOffset = vks::tools::alignedVkSize(2 * bufferDescriptorSize, imageDescriptorSize);
+		imageHeapOffset = vks::tools::alignedSize(2 * bufferDescriptorSize, imageDescriptorSize);
 
 		// Size calculations for the heap also need to accomodate for the reserved range, used by the driver for internal bookkeeping
-		const VkDeviceSize heapSizeResources = vks::tools::alignedVkSize(imageHeapOffset + imageDescriptorSize * 2 + descriptorHeapProperties.minResourceHeapReservedRange, descriptorHeapProperties.resourceHeapAlignment);
+		const VkDeviceSize heapSizeResources = vks::tools::alignedSize(imageHeapOffset + imageDescriptorSize * 2 + descriptorHeapProperties.minResourceHeapReservedRange, descriptorHeapProperties.resourceHeapAlignment);
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,

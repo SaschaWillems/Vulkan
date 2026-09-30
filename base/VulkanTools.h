@@ -152,7 +152,11 @@ VkShaderModule loadShader(const char *fileName, VkDevice device);
 		/** @brief Checks if a file exists */
 		bool fileExists(const std::string &filename);
 
-		uint32_t alignedSize(uint32_t value, uint32_t alignment);
-		VkDeviceSize alignedVkSize(VkDeviceSize value, VkDeviceSize alignment);
+        // Return `value` aligned to `alignment`
+		template<typename T>
+		constexpr T alignedSize(T value, T alignment)
+		{
+			return (((value + (alignment - 1)) / alignment) * alignment);
+		}
 	}
 }
