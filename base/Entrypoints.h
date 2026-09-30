@@ -86,7 +86,7 @@ void DispatchTouchEventCB(OH_NativeXComponent *component, void *window) {       
     VulkanExample::handleAppInput(component, window, &vulkanExample);                               \
 }                                                                                                   \
                                                                                                     \
-extern "C" napi_value Init(napi_env env, napi_value exports) {                                          \
+extern "C" napi_value Init(napi_env env, napi_value exports) {                                      \
     napi_status status;                                                                             \
     napi_value exportInstance = nullptr;                                                            \
     OH_NativeXComponent *nativeXComponent = nullptr;                                                \
@@ -113,7 +113,7 @@ extern "C" napi_value Init(napi_env env, napi_value exports) {                  
     status = napi_get_named_property(env, global, "filesDir", &filesDirNapi);                       \
     napi_valuetype valueType;                                                                       \
     napi_typeof(env, filesDirNapi, &valueType);                                                     \
-    if (valueType == napi_string) {                                                                 \ 
+    if (valueType == napi_string) {                                                                 \
         size_t strSize = 0;                                                                         \
         napi_get_value_string_utf8(env, filesDirNapi, nullptr, 0, &strSize);                        \
         std::string filesDir(strSize, '\0');                                                        \
