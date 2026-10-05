@@ -1,8 +1,8 @@
 /*
  * Vulkan Example - Using untyped descriptor heaps via VK_EXT_descriptor_heap
- * 
+ *
  * Descriptor heaps fundamentally rework how shader resources are bound. Descriptors are simply stored in buffers (heaps).
- * 
+ *
  * Note: This sample also uses uniform buffers and buffer device address to pass global data
  *
  * Copyright (C) 2026 by Sascha Willems - www.saschawillems.de
@@ -40,7 +40,7 @@ public:
 	vkglTF::Model model;
 
 	VkPipeline pipeline{ nullptr };
-	
+
 	VkPhysicalDeviceVulkan12Features enabledDeviceVulkan12Features{};
 	VkPhysicalDeviceDescriptorHeapFeaturesEXT enabledDeviceDescriptorHeapFeaturesEXT{};
 	VkPhysicalDeviceSynchronization2Features enabledSynchronization2Features{};
@@ -169,10 +169,10 @@ public:
 
 		// Sampler heap
 		// We need to calculate some aligned offsets, heaps and strides to make sure we properly accress the descriptors
-		samplerDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.samplerDescriptorSize, descriptorHeapProperties.samplerDescriptorAlignment);
+		samplerDescriptorSize = vks::tools::alignedSize(descriptorHeapProperties.samplerDescriptorSize, descriptorHeapProperties.samplerDescriptorAlignment);
 
 		// Size calculations for the heap also need to accomodate for the reserved range, used by the driver for internal bookkeeping
-		const VkDeviceSize heapSizeSamplers = vks::tools::alignedVkSize(samplerDescriptorSize * 2 + descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerHeapAlignment);
+		const VkDeviceSize heapSizeSamplers = vks::tools::alignedSize(samplerDescriptorSize * 2 + descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerHeapAlignment);
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -220,13 +220,13 @@ public:
 		VK_CHECK_RESULT(vkWriteSamplerDescriptorsEXT(device, static_cast<uint32_t>(samplerCreateInfos.size()), samplerCreateInfos.data(), hostAddressRangesSamplers.data()));
 
 		// Resource heap (buffers and images)
-		bufferDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.bufferDescriptorSize, descriptorHeapProperties.bufferDescriptorAlignment);
-		imageDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
+		bufferDescriptorSize = vks::tools::alignedSize(descriptorHeapProperties.bufferDescriptorSize, descriptorHeapProperties.bufferDescriptorAlignment);
+		imageDescriptorSize = vks::tools::alignedSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 		// Images are stored after the last buffer (aligned)
-		imageHeapOffset = vks::tools::alignedVkSize(2 * bufferDescriptorSize, imageDescriptorSize);
+		imageHeapOffset = vks::tools::alignedSize(2 * bufferDescriptorSize, imageDescriptorSize);
 
 		// Size calculations for the heap also need to accomodate for the reserved range, used by the driver for internal bookkeeping
-		const VkDeviceSize heapSizeResources = vks::tools::alignedVkSize(imageHeapOffset + imageDescriptorSize * 2 + descriptorHeapProperties.minResourceHeapReservedRange, descriptorHeapProperties.resourceHeapAlignment);
+		const VkDeviceSize heapSizeResources = vks::tools::alignedSize(imageHeapOffset + imageDescriptorSize * 2 + descriptorHeapProperties.minResourceHeapReservedRange, descriptorHeapProperties.resourceHeapAlignment);
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -237,7 +237,7 @@ public:
 
 		std::vector<VkHostAddressRangeEXT> hostAddressRangesResources{};
 		std::vector<VkResourceDescriptorInfoEXT> resourceDescriptorInfos{};
-		
+
 		// Buffer data
 		std::array<VkDeviceAddressRangeEXT, 2> deviceAddressRangesModelData{};
 
@@ -340,7 +340,7 @@ public:
 			.depthAttachmentFormat = depthFormat,
 			.stencilAttachmentFormat = depthFormat
 		};
-		
+
 		// With descriptor heaps we no longer need a pipeline layout
 		// This struct must be chained into pipeline creation to enable the use of heaps (allowing us to leave pipelineLayout empty)
 		VkPipelineCreateFlags2CreateInfo pipelineCreateFlags2CI{
@@ -362,7 +362,7 @@ public:
 	}
 
 	void updateUniformBuffers()
-	{		
+	{
 		uniformData.mvp = camera.matrices.perspective* camera.matrices.view;
 		uniformData.samplerIndex = selectedSampler;
 		memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(UniformData));
@@ -414,7 +414,7 @@ public:
 			.reservedRangeSize = descriptorHeapProperties.minResourceHeapReservedRange,
 		};
 		vkCmdBindResourceHeapEXT(cmdBuffer, &bindHeapInfoRes);
-		
+
 		// Bind the heap containing samplers
 		VkBindHeapInfoEXT bindHeapInfoSamplers{
 			.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT,
