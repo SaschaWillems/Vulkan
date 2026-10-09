@@ -15,6 +15,8 @@
 void VulkanSwapChain::initSurface(void* platformHandle, void* platformWindow)
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 void VulkanSwapChain::initSurface(ANativeWindow* window)
+#elif defined(VK_USE_PLATFORM_OHOS)
+void VulkanSwapChain::initSurface(NativeWindow* window)
 #elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
 void VulkanSwapChain::initSurface(IDirectFB* dfb, IDirectFBSurface* window)
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
@@ -45,6 +47,13 @@ void VulkanSwapChain::initSurface(screen_context_t screen_context, screen_window
 	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
 	surfaceCreateInfo.window = window;
 	err = vkCreateAndroidSurfaceKHR(instance, &surfaceCreateInfo, NULL, &surface);
+#elif defined(VK_USE_PLATFORM_OHOS)
+    VkSurfaceCreateInfoOHOS surfaceCreateInfo = {};
+	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_SURFACE_CREATE_INFO_OHOS;
+    surfaceCreateInfo.pNext = NULL;
+    surfaceCreateInfo.flags = 0;
+	surfaceCreateInfo.window = window;
+	err = vkCreateSurfaceOHOS(instance, &surfaceCreateInfo, NULL, &surface);
 #elif defined(VK_USE_PLATFORM_IOS_MVK)
 	VkIOSSurfaceCreateInfoMVK surfaceCreateInfo = {};
 	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK;

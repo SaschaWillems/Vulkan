@@ -24,6 +24,16 @@ namespace vks
 			scale = 2.0f;
 		};
 #endif
+#if defined (__OHOS__)
+    if (vks::OHOS::screenDensity >= 480) {
+        scale = 3.5f;
+    } else if (vks::OHOS::screenDensity >= 320) {
+        scale = 2.5f;
+    } else if (vks::OHOS::screenDensity >= 240) {
+        scale = 2.0f;
+    }
+#endif
+
 		// Init ImGui
 		ImGui::CreateContext();
 		// Color scheme
@@ -77,6 +87,24 @@ namespace vks
 			io.Fonts->AddFontFromMemoryTTF(fontAsset, size, 14.0f * scale);
 			delete[] fontAsset;
 		}
+#elif defined (__OHOS__)
+        float scale = (float)vks::OHOS::screenDensity / 160.0f;
+        NativeResourceManager* resourceMgr = ResourceManager::getInstance().getNativeResourceManager();
+        if (!resourceMgr) {
+            std::string msg = "ResourceManager not initialized. Call ResourceManager::getInstance().initialize() first.";
+//             vks::tools::exitFatal(msg, -1);
+        } 
+        RawFile *rawfile = OH_ResourceManager_OpenRawFile(resourceMgr, "Roboto-Medium.ttf"); 
+        if (rawfile) {
+            size_t size = OH_ResourceManager_GetRawFileSize(rawfile);
+            assert(size > 0);
+
+            char *fontAsset = new char[size];
+            OH_ResourceManager_ReadRawFile(rawfile, fontAsset, size);
+            OH_ResourceManager_CloseRawFile(rawfile);
+            io.Fonts->AddFontFromMemoryTTF(fontAsset, size, 14.0f * scale);
+            delete[] fontAsset;   
+        }
 #else
 		const std::string filename = getAssetPath() + "Roboto-Medium.ttf";
 		io.Fonts->AddFontFromFileTTF(filename.c_str(), 16.0f * scale);

@@ -78,6 +78,12 @@ namespace vks
 			} else {
 				LOGD("%s", debugMessage.str().c_str());
 			}
+#elif defined(__OHOS__)
+            if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+				LOGE("%{public}s", debugMessage.str().c_str());
+			} else {
+				LOGD("%{public}s", debugMessage.str().c_str());
+			}
 #else
 			if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
 				std::cerr << debugMessage.str() << "\n\n";

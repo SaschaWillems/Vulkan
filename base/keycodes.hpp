@@ -30,7 +30,7 @@
 #define KEY_O 0x4F
 #define KEY_T 0x54
 
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR) || defined(VK_USE_PLATFORM_OHOS)
 #define GAMEPAD_BUTTON_A 0x1000
 #define GAMEPAD_BUTTON_B 0x1001
 #define GAMEPAD_BUTTON_X 0x1002
