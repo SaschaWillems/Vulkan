@@ -4,7 +4,7 @@ import * as path from 'path';
 
 function copyFiles(from: string, into: string, include: RegExp | string) {
   if (!fs.existsSync(from)) {
-    console.warn(`[copyTask] 源路径不存在: ${from}`);
+    console.warn(`[copyTask]The original path does not exist: ${from}`);
     return;
   }
   fs.mkdirSync(into, { recursive: true });

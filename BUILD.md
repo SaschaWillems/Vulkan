@@ -86,3 +86,34 @@ Open the generated Xcode project, select an example using the Xcode scheme dropd
 
 #### iOS
 Navigate to the [apple](apple/) folder and follow the instructions in [README\_MoltenVK_Examples.md](apple/README_MoltenVK_Examples.md)
+
+<img src="./images/openharmonylogo.png" alt="" height="32px"> [OpenHarmony](openharmony/)
+
+Building on OpenHarmony is done using the [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/) IDE provided by Huawei.
+
+**Requirements**
+
+- DevEco Studio (latest version recommended)
+- OpenHarmony SDK (API 12 or later)
+- A physical OpenHarmony Next device (API 12–22) for testing. Note that the OpenHarmony emulator does not support Vulkan and cannot be used to run these samples.
+
+**Building via DevEco Studio**
+
+Open the target sample project folder under `openharmony/<sample-name>` in DevEco Studio, connect a physical device, then build and run directly from the IDE.
+
+**Building via command line**
+
+If you want to build via the command line, navigate to the sample directory and run:
+
+```
+cd openharmony/<sample-name>
+hvigorw assembleHap --mode module -p debuggable=true
+```
+
+This will build the HAP package for the selected sample. The output HAP file can be found under `openharmony/<sample-name>/entry/build/default/outputs/`.
+
+To install and run on a connected device:
+
+```
+hdc app install entry/build/default/outputs/entry-signed-default.hap
+```
