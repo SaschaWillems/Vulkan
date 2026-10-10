@@ -87,7 +87,7 @@ Open the generated Xcode project, select an example using the Xcode scheme dropd
 #### iOS
 Navigate to the [apple](apple/) folder and follow the instructions in [README\_MoltenVK_Examples.md](apple/README_MoltenVK_Examples.md)
 
-<img src="./images/openharmonylogo.png" alt="" height="32px"> [OpenHarmony](openharmony/)
+### <img src="./images/openharmonylogo.png" alt="" height="32px"> [OpenHarmony](openharmony/)
 
 Building on OpenHarmony is done using the [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/) IDE provided by Huawei.
 
