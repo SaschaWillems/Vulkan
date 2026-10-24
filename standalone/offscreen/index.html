@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vulkan live stream</title>
+<style>
+:root { color-scheme: dark; font: 15px system-ui, sans-serif; background: #0b0f17; color: #e6edf7; }
+body { max-width: 900px; margin: 48px auto; padding: 0 24px; }
+h1 { font-size: 28px; margin-bottom: 8px; }
+p { color: #a9b7cb; line-height: 1.5; }
+form { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: 24px 0; }
+label { display: grid; gap: 6px; flex: 1; min-width: 230px; }
+input, button { font: inherit; border: 1px solid #36445a; border-radius: 8px; padding: 10px 14px; }
+input { color: inherit; background: #111a28; }
+button { cursor: pointer; background: #8dc7ff; color: #0b2034; font-weight: 600; }
+button:disabled { opacity: .5; cursor: default; }
+video { width: 100%; aspect-ratio: 4/3; background: #080d16; border: 1px solid #28364a;
+        border-radius: 12px; display: block; cursor: grab; user-select: none; }
+video.dragging { cursor: grabbing; }
+footer { display: flex; flex-wrap: wrap; gap: 10px 24px; margin-top: 16px; color: #a9b7cb; }
+#status { color: #8dc7ff; }
+details { margin-top: 14px; color: #a9b7cb; }
+</style>
+</head>
+<body>
+<h1>Vulkan live stream</h1>
+<p>A rotating 3D triangle, rendered on the server. Drag the video to orbit the camera.</p>
+<form id="connectionForm">
+<label>Signaling server<input id="serverUrl" value="ws://127.0.0.1:8080" spellcheck="false" required></label>
+<button id="connectButton" type="submit">Connect</button>
+<button id="disconnectButton" type="button" disabled>Disconnect</button>
+</form>
+<details><summary>ICE configuration for remote networks</summary>
+<p>Optional browser ICE servers as a JSON array. Configure the C++ server's ICE servers separately.</p>
+<label>ICE servers<input id="iceServers" value="[]" spellcheck="false"></label>
+</details>
+<p id="status" role="status" aria-live="polite">Ready to connect</p>
+<video id="remoteVideo" autoplay playsinline muted></video>
+<footer><span id="stats">Waiting for video</span><span id="cameraStatus">Drag controls disconnected</span></footer>
+<script>
+'use strict';
+const video = document.getElementById('remoteVideo');
+const status = document.getElementById('status');
+const stats = document.getElementById('stats');
+const cameraStatus = document.getElementById('cameraStatus');
+const connectButton = document.getElementById('connectButton');
+const disconnectButton = document.getElementById('disconnectButton');
+let peer = null, socket = null, controls = null;
+let generation = 0, statsTimer = null, lastStats = null;
+let dragging = false, lastX = 0, lastY = 0, pendingDx = 0, pendingDy = 0, dragFrame = null;
+
+function disconnect(message = 'Disconnected') {
+    ++generation;
+    clearInterval(statsTimer);
+    statsTimer = null;
+    if (dragFrame !== null) cancelAnimationFrame(dragFrame);
+    dragFrame = null;
+    dragging = false;
+    pendingDx = pendingDy = 0;
+    video.classList.remove('dragging');
+    if (controls) { controls.onclose = controls.onmessage = controls.onopen = null; controls.close(); }
+    if (peer) { peer.ontrack = peer.onicecandidate = peer.ondatachannel = peer.onconnectionstatechange = null; peer.close(); }
+    if (socket) { socket.onopen = socket.onmessage = socket.onclose = socket.onerror = null; socket.close(); }
+    controls = peer = socket = null;
+    video.srcObject = null;
+    lastStats = null;
+    connectButton.disabled = false;
+    disconnectButton.disabled = true;
+    status.textContent = message;
+    stats.textContent = 'Waiting for video';
+    cameraStatus.textContent = 'Drag controls disconnected';
+    delete cameraStatus.dataset.yaw;
+    delete cameraStatus.dataset.pitch;
+}
+
+async function connect(event) {
+    event.preventDefault();
+    disconnect('Connecting…');
+    const current = generation;
+    try {
+        const url = new URL(document.getElementById('serverUrl').value);
+        if (!['ws:', 'wss:'].includes(url.protocol)) throw new Error('Use a ws:// or wss:// signaling URL');
+        const iceServers = JSON.parse(document.getElementById('iceServers').value);
+        if (!Array.isArray(iceServers)) throw new Error('ICE configuration must be a JSON array');
+        peer = new RTCPeerConnection({ iceServers, bundlePolicy: 'max-bundle' });
+        const connection = peer;
+        socket = new WebSocket(url);
+        const signaling = socket;
+        const pendingCandidates = [];
+        let signalingChain = Promise.resolve();
+        connectButton.disabled = true;
+        disconnectButton.disabled = false;
+        const sendSignal = message => {
+            if (current === generation && signaling.readyState === WebSocket.OPEN)
+                signaling.send(JSON.stringify(message));
+        };
+        connection.onicecandidate = event => {
+            if (event.candidate) sendSignal({ type: 'candidate', candidate: event.candidate.candidate, mid: event.candidate.sdpMid });
+        };
+        connection.ontrack = event => {
+            if (current !== generation) return;
+            video.srcObject = event.streams[0] || new MediaStream([event.track]);
+            video.play().catch(() => { status.textContent = 'Click the video to start playback'; });
+        };
+        connection.ondatachannel = event => {
+            if (current !== generation || event.channel.label !== 'controls') { event.channel.close(); return; }
+            controls = event.channel;
+            controls.onopen = () => { cameraStatus.textContent = 'Drag controls connected'; };
+            controls.onclose = () => { cameraStatus.textContent = 'Drag controls disconnected'; };
+            controls.onmessage = event => {
+                try {
+                    const pose = JSON.parse(event.data);
+                    if (pose.type !== 'camera' || !Number.isFinite(pose.yaw) || !Number.isFinite(pose.pitch)) return;
+                    cameraStatus.dataset.yaw = pose.yaw;
+                    cameraStatus.dataset.pitch = pose.pitch;
+                    cameraStatus.textContent = `Camera ${(pose.yaw * 180 / Math.PI).toFixed(0)}° / ${(pose.pitch * 180 / Math.PI).toFixed(0)}°`;
+                } catch { /* Ignore malformed telemetry. */ }
+            };
+        };
+        connection.onconnectionstatechange = () => {
+            if (current !== generation) return;
+            status.textContent = `WebRTC ${connection.connectionState}`;
+            if (connection.connectionState === 'failed') disconnect('Connection failed. Check the server and ICE configuration.');
+        };
+        signaling.onopen = () => sendSignal({ type: 'start' });
+        signaling.onmessage = event => {
+            // SDP operations are asynchronous; serialize them and queue ICE until the offer is set.
+            signalingChain = signalingChain.then(async () => {
+                if (current !== generation) return;
+                const message = JSON.parse(event.data);
+                if (message.type === 'offer') {
+                    await connection.setRemoteDescription({ type: 'offer', sdp: message.sdp });
+                    for (const candidate of pendingCandidates.splice(0)) await connection.addIceCandidate(candidate);
+                    const answer = await connection.createAnswer();
+                    await connection.setLocalDescription(answer);
+                    sendSignal({ type: 'answer', sdp: connection.localDescription.sdp });
+                } else if (message.type === 'candidate') {
+                    const candidate = { candidate: message.candidate, sdpMid: message.mid };
+                    if (connection.remoteDescription) await connection.addIceCandidate(candidate);
+                    else pendingCandidates.push(candidate);
+                } else if (message.type === 'error') throw new Error(message.message);
+            }).catch(error => { if (current === generation) disconnect(`Negotiation failed: ${error.message}`); });
+        };
+        signaling.onerror = () => { if (current === generation) disconnect('Could not reach the signaling server'); };
+        signaling.onclose = () => { if (current === generation) disconnect('Server disconnected. Reconnect to resume.'); };
+        statsTimer = setInterval(async () => {
+            try {
+                const reports = await connection.getStats();
+                if (current !== generation) return;
+                for (const report of reports.values()) {
+                    if (report.type !== 'inbound-rtp' || report.kind !== 'video') continue;
+                    if (lastStats) {
+                        const seconds = (report.timestamp - lastStats.timestamp) / 1000;
+                        if (seconds > 0) stats.textContent = `${report.frameWidth || 0} × ${report.frameHeight || 0} · ` +
+                            `${((report.framesDecoded - lastStats.framesDecoded) / seconds).toFixed(1)} FPS · ` +
+                            `${((report.bytesReceived - lastStats.bytesReceived) * 8 / seconds / 1000000).toFixed(2)} Mbps`;
+                    }
+                    lastStats = report;
+                }
+            } catch { /* A disconnect can race a pending statistics request. */ }
+        }, 1000);
+    } catch (error) { disconnect(error.message); }
+}
+
+function flushDrag() {
+    dragFrame = null;
+    if (controls?.readyState === 'open' && controls.bufferedAmount < 16384)
+        controls.send(JSON.stringify({ type: 'rotate', dx: pendingDx, dy: pendingDy }));
+    pendingDx = pendingDy = 0;
+}
+video.addEventListener('mousedown', event => {
+    if (event.button !== 0 || controls?.readyState !== 'open') return;
+    dragging = true;
+    lastX = event.clientX;
+    lastY = event.clientY;
+    video.classList.add('dragging');
+    event.preventDefault();
+});
+window.addEventListener('mousemove', event => {
+    if (!dragging) return;
+    const bounds = video.getBoundingClientRect();
+    pendingDx += (event.clientX - lastX) / bounds.width;
+    pendingDy += (event.clientY - lastY) / bounds.height;
+    lastX = event.clientX;
+    lastY = event.clientY;
+    if (dragFrame === null) dragFrame = requestAnimationFrame(flushDrag);
+});
+function endDrag() { dragging = false; video.classList.remove('dragging'); }
+window.addEventListener('mouseup', endDrag);
+window.addEventListener('blur', endDrag);
+window.addEventListener('beforeunload', () => disconnect());
+video.addEventListener('click', () => { if (video.paused && video.srcObject) video.play().catch(() => {}); });
+document.getElementById('connectionForm').addEventListener('submit', connect);
+disconnectButton.addEventListener('click', () => disconnect());
+</script>
+</body>
+</html>

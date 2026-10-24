@@ -1,0 +1,9 @@
+build
+build-*
+.git
+.DS_Store
+**/__pycache__
+**/CMakeFiles
+**/CMakeCache.txt
+*.ppm
+*.log
