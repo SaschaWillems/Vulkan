@@ -6,6 +6,36 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(Vulkan REQUIRED)
 find_package(Threads REQUIRED)
+include(FetchContent)
+set(FASTGLTF_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
+set(FASTGLTF_ENABLE_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(FASTGLTF_ENABLE_DEPRECATED_EXT OFF CACHE BOOL "" FORCE)
+set(GLM_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(VMA_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(fastgltf GIT_REPOSITORY https://github.com/spnda/fastgltf.git
+    GIT_TAG d4734a7e55d8d25155e755d895e018e423845cd0)
+FetchContent_Declare(vma GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+    GIT_TAG c788c52156f3ef7bc7ab769cb03c110a53ac8fcb)
+FetchContent_Declare(glm GIT_REPOSITORY https://github.com/g-truc/glm.git
+    GIT_TAG 0af55ccecd98d4e5a8d1fad7de25ba429d60e863)
+FetchContent_Declare(stb GIT_REPOSITORY https://github.com/nothings/stb.git
+    GIT_TAG 003501f6d7a8668ce8b6d875e34dd97ad0d5d5b5)
+FetchContent_MakeAvailable(fastgltf vma glm stb)
+find_program(OFFSCREEN_GLSLANG glslangValidator HINTS "$ENV{VULKAN_SDK}/bin" REQUIRED)
+foreach(stage vert frag)
+    add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pbr.${stage}.spv"
+        COMMAND "${OFFSCREEN_GLSLANG}" -V --target-env vulkan1.1 -Os
+            "${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.${stage}"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/pbr.${stage}.spv"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.${stage}" VERBATIM)
+endforeach()
+add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/PbrShaders.h"
+    COMMAND "${CMAKE_COMMAND}" "-DVERT=${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv"
+        "-DFRAG=${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv"
+        "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/PbrShaders.h"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/shaders/embed.cmake"
+    DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv" "${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv"
+        "${CMAKE_CURRENT_SOURCE_DIR}/shaders/embed.cmake" VERBATIM)
 option(OFFSCREEN_STREAMING "Build the WebRTC streaming server" ON)
 set(ENABLE_NVENC AUTO CACHE STRING "Linux NVENC support: AUTO, ON (require SDK), or OFF")
 set_property(CACHE ENABLE_NVENC PROPERTY STRINGS AUTO ON OFF)
@@ -22,8 +52,25 @@ function(offscreen_warnings target)
     endif()
 endfunction()
 
+add_library(offscreen_scene STATIC GltfLoader.cpp PbrRenderer.cpp Vma.cpp StbImage.cpp
+    "${CMAKE_CURRENT_BINARY_DIR}/PbrShaders.h")
+target_include_directories(offscreen_scene PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}"
+    PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+target_include_directories(offscreen_scene SYSTEM PRIVATE "${stb_SOURCE_DIR}")
+target_include_directories(offscreen_scene SYSTEM PUBLIC "${vma_SOURCE_DIR}/include"
+    "${fastgltf_SOURCE_DIR}/include" "${fastgltf_SOURCE_DIR}/deps/simdjson" "${glm_SOURCE_DIR}")
+if(NOT MSVC)
+    # These translation units compile third-party single-header implementations.
+    set_source_files_properties(Vma.cpp StbImage.cpp PROPERTIES COMPILE_OPTIONS "-w")
+endif()
+target_link_libraries(offscreen_scene PUBLIC Vulkan::Vulkan fastgltf::fastgltf GPUOpen::VulkanMemoryAllocator glm::glm)
+target_compile_definitions(offscreen_scene PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE GLM_FORCE_RADIANS
+    VMA_VULKAN_VERSION=1001000)
+offscreen_warnings(offscreen_scene)
 add_executable(offscreen_renderer main.cpp)
 target_link_libraries(offscreen_renderer PRIVATE Vulkan::Vulkan Threads::Threads)
+target_link_libraries(offscreen_renderer PRIVATE offscreen_scene)
+target_compile_definitions(offscreen_renderer PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE GLM_FORCE_RADIANS)
 offscreen_warnings(offscreen_renderer)
 
 if(OFFSCREEN_STREAMING)
@@ -53,6 +100,8 @@ if(OFFSCREEN_STREAMING)
     add_library(offscreen_streaming STATIC EncoderFactory.cpp WebRTCStreamer.cpp)
     target_include_directories(offscreen_streaming PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
     target_link_libraries(offscreen_streaming PUBLIC LibDataChannel::LibDataChannel nlohmann_json::nlohmann_json)
+    target_link_libraries(offscreen_streaming PUBLIC glm::glm)
+    target_compile_definitions(offscreen_streaming PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE GLM_FORCE_RADIANS)
     offscreen_warnings(offscreen_streaming)
     if(APPLE)
         enable_language(OBJCXX)
@@ -133,6 +182,28 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    set(GLTF_FIXTURES "${CMAKE_CURRENT_BINARY_DIR}/gltf-fixtures")
+    add_custom_command(OUTPUT "${GLTF_FIXTURES}/hierarchy.glb"
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/generate_fixtures.py" "${GLTF_FIXTURES}"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/generate_fixtures.py" VERBATIM)
+    add_custom_target(gltf_fixtures DEPENDS "${GLTF_FIXTURES}/hierarchy.glb")
+    add_executable(gltf_loader_tests tests/GltfLoaderTests.cpp)
+    target_link_libraries(gltf_loader_tests PRIVATE offscreen_scene)
+    offscreen_warnings(gltf_loader_tests)
+    add_dependencies(gltf_loader_tests gltf_fixtures)
+    add_dependencies(offscreen_renderer gltf_fixtures)
+    add_test(NAME gltf_asset_ingestion COMMAND gltf_loader_tests "${GLTF_FIXTURES}")
+    add_test(NAME gltf_pbr_render_and_camera COMMAND offscreen_renderer --model "${GLTF_FIXTURES}/hierarchy.glb" --render-test)
+    set_tests_properties(gltf_pbr_render_and_camera PROPERTIES TIMEOUT 60
+        FAIL_REGULAR_EXPRESSION "\\[validation error\\]")
+    add_test(NAME gltf_alpha_render COMMAND offscreen_renderer --model "${GLTF_FIXTURES}/alpha.gltf" --render-test)
+    set_tests_properties(gltf_alpha_render PROPERTIES TIMEOUT 60
+        FAIL_REGULAR_EXPRESSION "\\[validation error\\]")
+    add_test(NAME gltf_pbr_pixels_and_depth COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/verify_pbr.py" "$<TARGET_FILE:offscreen_renderer>"
+        "${GLTF_FIXTURES}" "${CMAKE_CURRENT_BINARY_DIR}/pbr-pixel-tests")
+    set_tests_properties(gltf_pbr_pixels_and_depth PROPERTIES TIMEOUT 120)
     add_test(NAME offscreen_render_and_readback COMMAND "${CMAKE_COMMAND}"
         "-DRENDERER=$<TARGET_FILE:offscreen_renderer>"
         "-DTEST_DIR=${CMAKE_CURRENT_BINARY_DIR}/test-output"
@@ -140,6 +211,9 @@ if(BUILD_TESTING)
     set_tests_properties(offscreen_render_and_readback PROPERTIES TIMEOUT 60)
     add_test(NAME offscreen_animation_and_orbit COMMAND offscreen_renderer --render-test)
     set_tests_properties(offscreen_animation_and_orbit PROPERTIES TIMEOUT 30
+        FAIL_REGULAR_EXPRESSION "\\[validation error\\]")
+    add_test(NAME offscreen_8k_render_and_orbit COMMAND offscreen_renderer --resolution 8k --render-test)
+    set_tests_properties(offscreen_8k_render_and_orbit PROPERTIES TIMEOUT 60
         FAIL_REGULAR_EXPRESSION "\\[validation error\\]")
     if(OFFSCREEN_STREAMING)
         add_executable(streaming_tests tests/Tests.cpp)
@@ -164,6 +238,10 @@ if(BUILD_TESTING)
                     set_tests_properties(nvenc_${input}_interop PROPERTIES TIMEOUT 45
                         FAIL_REGULAR_EXPRESSION "\\[validation error\\]")
                 endforeach()
+                add_test(NAME nvenc_8k_av1 COMMAND offscreen_renderer --resolution 8k
+                    --encoder hardware --frames 5 --port 0)
+                set_tests_properties(nvenc_8k_av1 PROPERTIES TIMEOUT 60
+                    FAIL_REGULAR_EXPRESSION "\\[validation error\\]")
             endif()
         endif()
         set_tests_properties(streaming_unit_and_encoder streaming_render_encode PROPERTIES

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CameraState.h"
+#include "VideoConfig.h"
 #include <chrono>
 #include <cstdint>
 #include <memory>
@@ -18,6 +19,8 @@ public:
         uint16_t port = 8080;
         std::string bindAddress = "127.0.0.1";
         std::vector<std::string> iceServers;
+        VideoCodec codec = VideoCodec::H264;
+        uint32_t h264Level = 51;
     };
     WebRTCStreamer(std::shared_ptr<CameraState> camera, const Options& options);
     ~WebRTCStreamer();
@@ -28,7 +31,7 @@ public:
     void Poll();
     bool HasViewers() const;
     bool ConsumeKeyFrameRequest();
-    void SendFrame(std::span<const uint8_t> annexB, std::chrono::duration<double> captureTime);
+    void SendFrame(std::span<const uint8_t> encoded, std::chrono::duration<double> captureTime);
     uint16_t Port() const;
 
 private:

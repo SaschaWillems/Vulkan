@@ -58,6 +58,15 @@ int main() {
         try { (void)encoder.EncodeGpuFrame(); } catch (const std::logic_error&) { rejected = true; }
         Require(rejected, "CPU encoder accepted GPU input");
         Require(encoder.Init(640, 480, 60, 4000000), "Reinitialization failed");
+        Require(encoder.Init(2560, 1440, 60, 16000000), "2K software encoder initialization failed");
+        rgba.assign(2560 * 1440 * 4, 255);
+        const auto highResolution = encoder.EncodeFrame(rgba.data());
+        Require(HasNal(highResolution, 7) && HasNal(highResolution, 5), "2K software keyframe missing");
+        bool correctLevel = false;
+        for (size_t i = 0; i + 6 < highResolution.size(); ++i)
+            if (highResolution[i] == 0 && highResolution[i + 1] == 0 && highResolution[i + 2] == 1 &&
+                (highResolution[i + 3] & 31) == 7) correctLevel = highResolution[i + 6] == 51;
+        Require(correctLevel, "2K software bitstream does not signal H.264 level 5.1");
         std::cout << "BT.709 conversion, FD ownership, and CPU H.264 tests passed\n";
         return 0;
     } catch (const std::exception& error) {

@@ -61,16 +61,14 @@ struct NvencZeroCopyEncoder::Impl {
     }
 };
 
-NvencZeroCopyEncoder::NvencZeroCopyEncoder(VulkanMemoryExporter& source)
-    : source_(source), impl_(std::make_unique<Impl>()) {}
+NvencZeroCopyEncoder::NvencZeroCopyEncoder(VulkanMemoryExporter& source, VideoCodec codec)
+    : source_(source), codec_(codec), impl_(std::make_unique<Impl>()) {}
 NvencZeroCopyEncoder::~NvencZeroCopyEncoder() = default;
 
 bool NvencZeroCopyEncoder::Init(uint32_t width, uint32_t height, uint32_t fps, uint32_t bitrate) {
     impl_ = std::make_unique<Impl>();
-    const uint64_t blocks = ((uint64_t{width} + 15) / 16) * ((uint64_t{height} + 15) / 16);
-    if (!width || !height || width % 2 || height % 2 || !fps || fps > 120 ||
-        width != source_.Width() || height != source_.Height() || blocks > 3600 ||
-        blocks * fps > 108000 || bitrate < 1000 || bitrate > 14000000) return false;
+    if (!ValidVideoSettings(width, height, fps, bitrate) ||
+        width != source_.Width() || height != source_.Height()) return false;
     try {
         auto& state = *impl_;
         // Runtime loading allows x264 fallback even when NVIDIA driver libraries are absent.
@@ -93,14 +91,28 @@ bool NvencZeroCopyEncoder::Init(uint32_t width, uint32_t height, uint32_t fps, u
         open.device = state.interop->Context();
         NVENC_CHECK(state.api.nvEncOpenEncodeSessionEx(&open, &state.encoder));
 
+        const GUID codecGuid = codec_ == VideoCodec::AV1 ? NV_ENC_CODEC_AV1_GUID : NV_ENC_CODEC_H264_GUID;
+        const auto capability = [&](NV_ENC_CAPS requested) {
+            NV_ENC_CAPS_PARAM caps{};
+            caps.version = NV_ENC_CAPS_PARAM_VER;
+            caps.capsToQuery = requested;
+            int limit = 0;
+            NVENC_CHECK(state.api.nvEncGetEncodeCaps(state.encoder, codecGuid, &caps, &limit));
+            return limit;
+        };
+        const int maxWidth = capability(NV_ENC_CAPS_WIDTH_MAX), maxHeight = capability(NV_ENC_CAPS_HEIGHT_MAX);
+        if (maxWidth <= 0 || maxHeight <= 0 || width > static_cast<uint32_t>(maxWidth) ||
+            height > static_cast<uint32_t>(maxHeight))
+            throw std::runtime_error(std::string(CodecName(codec_)) + " NVENC limit is " +
+                std::to_string(maxWidth) + "x" + std::to_string(maxHeight) + "; select AV1 for 8K on an L4");
         NV_ENC_PRESET_CONFIG preset{};
         preset.version = NV_ENC_PRESET_CONFIG_VER;
         preset.presetCfg.version = NV_ENC_CONFIG_VER;
-        NVENC_CHECK(state.api.nvEncGetEncodePresetConfigEx(state.encoder, NV_ENC_CODEC_H264_GUID,
+        NVENC_CHECK(state.api.nvEncGetEncodePresetConfigEx(state.encoder, codecGuid,
             NV_ENC_PRESET_P1_GUID, NV_ENC_TUNING_INFO_ULTRA_LOW_LATENCY, &preset));
         auto config = preset.presetCfg;
         config.version = NV_ENC_CONFIG_VER;
-        config.profileGUID = NV_ENC_H264_PROFILE_BASELINE_GUID;
+        config.profileGUID = codec_ == VideoCodec::AV1 ? NV_ENC_AV1_PROFILE_MAIN_GUID : NV_ENC_H264_PROFILE_BASELINE_GUID;
         config.gopLength = NVENC_INFINITE_GOPLENGTH;
         config.frameIntervalP = 1; // No B frames, reorder delay, or lookahead.
         config.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CBR;
@@ -110,22 +122,38 @@ bool NvencZeroCopyEncoder::Init(uint32_t width, uint32_t height, uint32_t fps, u
         config.rcParams.lookaheadDepth = 0;
         config.rcParams.zeroReorderDelay = 1;
         config.rcParams.multiPass = NV_ENC_MULTI_PASS_DISABLED;
-        auto& h264 = config.encodeCodecConfig.h264Config;
-        h264.level = NV_ENC_LEVEL_H264_31;
-        h264.idrPeriod = NVENC_INFINITE_GOPLENGTH;
-        h264.repeatSPSPPS = 1;
-        h264.chromaFormatIDC = 1;
-        h264.entropyCodingMode = NV_ENC_H264_ENTROPY_CODING_MODE_CAVLC;
-        h264.h264VUIParameters.videoSignalTypePresentFlag = 1;
-        h264.h264VUIParameters.videoFormat = NV_ENC_VUI_VIDEO_FORMAT_UNSPECIFIED;
-        h264.h264VUIParameters.videoFullRangeFlag = 0;
-        h264.h264VUIParameters.colourDescriptionPresentFlag = 1;
-        h264.h264VUIParameters.colourPrimaries = NV_ENC_VUI_COLOR_PRIMARIES_BT709;
-        h264.h264VUIParameters.transferCharacteristics = NV_ENC_VUI_TRANSFER_CHARACTERISTIC_BT709;
-        h264.h264VUIParameters.colourMatrix = NV_ENC_VUI_MATRIX_COEFFS_BT709;
+        if (codec_ == VideoCodec::AV1) {
+            auto& av1 = config.encodeCodecConfig.av1Config;
+            av1.level = NV_ENC_LEVEL_AV1_AUTOSELECT;
+            av1.tier = 0;
+            av1.outputAnnexBFormat = 0; // libdatachannel expects low-overhead OBUs with size fields.
+            av1.disableSeqHdr = 0;
+            av1.repeatSeqHdr = 1;
+            av1.idrPeriod = NVENC_INFINITE_GOPLENGTH;
+            av1.chromaFormatIDC = 1;
+            av1.inputBitDepth = av1.outputBitDepth = NV_ENC_BIT_DEPTH_8;
+            av1.colorPrimaries = NV_ENC_VUI_COLOR_PRIMARIES_BT709;
+            av1.transferCharacteristics = NV_ENC_VUI_TRANSFER_CHARACTERISTIC_BT709;
+            av1.matrixCoefficients = NV_ENC_VUI_MATRIX_COEFFS_BT709;
+            av1.colorRange = 0;
+        } else {
+            auto& h264 = config.encodeCodecConfig.h264Config;
+            h264.level = H264Level(width, height, fps, bitrate);
+            h264.idrPeriod = NVENC_INFINITE_GOPLENGTH;
+            h264.repeatSPSPPS = 1;
+            h264.chromaFormatIDC = 1;
+            h264.entropyCodingMode = NV_ENC_H264_ENTROPY_CODING_MODE_CAVLC;
+            h264.h264VUIParameters.videoSignalTypePresentFlag = 1;
+            h264.h264VUIParameters.videoFormat = NV_ENC_VUI_VIDEO_FORMAT_UNSPECIFIED;
+            h264.h264VUIParameters.videoFullRangeFlag = 0;
+            h264.h264VUIParameters.colourDescriptionPresentFlag = 1;
+            h264.h264VUIParameters.colourPrimaries = NV_ENC_VUI_COLOR_PRIMARIES_BT709;
+            h264.h264VUIParameters.transferCharacteristics = NV_ENC_VUI_TRANSFER_CHARACTERISTIC_BT709;
+            h264.h264VUIParameters.colourMatrix = NV_ENC_VUI_MATRIX_COEFFS_BT709;
+        }
         NV_ENC_INITIALIZE_PARAMS initialize{};
         initialize.version = NV_ENC_INITIALIZE_PARAMS_VER;
-        initialize.encodeGUID = NV_ENC_CODEC_H264_GUID;
+        initialize.encodeGUID = codecGuid;
         initialize.presetGUID = NV_ENC_PRESET_P1_GUID;
         initialize.tuningInfo = NV_ENC_TUNING_INFO_ULTRA_LOW_LATENCY;
         initialize.encodeWidth = initialize.darWidth = initialize.maxEncodeWidth = width;
@@ -155,7 +183,7 @@ bool NvencZeroCopyEncoder::Init(uint32_t width, uint32_t height, uint32_t fps, u
         state.width = width; state.height = height; state.fps = fps;
         return true;
     } catch (const std::exception& error) {
-        std::cerr << "NVENC initialization: " << error.what() << '\n';
+        std::cerr << CodecName(codec_) << " NVENC initialization: " << error.what() << '\n';
         impl_ = std::make_unique<Impl>();
         return false;
     }
@@ -185,8 +213,10 @@ std::vector<uint8_t> NvencZeroCopyEncoder::EncodeGpuFrame() {
     picture.frameIdx = static_cast<uint32_t>(state.frame);
     picture.inputTimeStamp = state.frame;
     picture.inputDuration = 1;
-    if (state.keyframe.exchange(false) || state.frame % state.fps == 0)
-        picture.encodePicFlags = NV_ENC_PIC_FLAG_FORCEIDR | NV_ENC_PIC_FLAG_OUTPUT_SPSPPS;
+    if (state.keyframe.exchange(false) || state.frame % state.fps == 0) {
+        picture.encodePicFlags = NV_ENC_PIC_FLAG_FORCEIDR;
+        if (codec_ == VideoCodec::H264) picture.encodePicFlags |= NV_ENC_PIC_FLAG_OUTPUT_SPSPPS;
+    }
     const auto status = state.api.nvEncEncodePicture(state.encoder, &picture);
     state.pending = status == NV_ENC_SUCCESS || status == NV_ENC_ERR_NEED_MORE_INPUT;
     NVENC_CHECK(status); // NEED_MORE_INPUT is incompatible with this zero-delay single-slot pipeline.

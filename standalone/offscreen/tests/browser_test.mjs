@@ -13,6 +13,13 @@ import { setTimeout as delay } from 'node:timers/promises';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const executable = process.argv[2] ? resolve(process.argv[2]) : resolve(root, '../../build/webrtc/offscreen_renderer');
 const artifacts = resolve(process.argv[3] || dirname(executable));
+const resolution = process.env.OFFSCREEN_TEST_RESOLUTION || '2k';
+const dimensions = { '2k': [2560, 1440], '4k': [3840, 2160], '8k': [7680, 4320] }[resolution];
+assert.ok(dimensions, 'OFFSCREEN_TEST_RESOLUTION must be 2k, 4k, or 8k');
+// High-resolution correctness runs use 30 FPS; opt into 60 FPS for throughput checks.
+const targetFps = Number(process.env.OFFSCREEN_TEST_FPS || 30);
+assert.ok(Number.isInteger(targetFps) && targetFps > 0 && targetFps <= 60);
+const expectedCodec = process.env.OFFSCREEN_TEST_CODEC || (resolution === '8k' ? 'av1' : 'h264');
 const chromePath = process.env.CHROME_BIN || (process.platform === 'darwin'
     ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 'google-chrome');
 const profile = await mkdtemp(join(tmpdir(), 'offscreen-chrome-'));
@@ -80,11 +87,12 @@ class DevTools {
 
 try {
     await mkdir(artifacts, { recursive: true });
-    const serverArgs = ['--port', '0'];
+    const serverArgs = ['--port', '0', '--resolution', resolution, '--codec', expectedCodec, '--fps', String(targetFps)];
     if (process.env.OFFSCREEN_TEST_ENCODER)
         serverArgs.push('--encoder', process.env.OFFSCREEN_TEST_ENCODER);
     if (process.env.OFFSCREEN_TEST_NVENC_INPUT)
         serverArgs.push('--nvenc-input', process.env.OFFSCREEN_TEST_NVENC_INPUT);
+    if (process.env.OFFSCREEN_TEST_MODEL) serverArgs.push('--model', resolve(process.env.OFFSCREEN_TEST_MODEL));
     server = spawn(executable, serverArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
     server.on('error', error => { serverError = error; });
     server.stdout.on('data', bytes => { serverLog += bytes; });
@@ -116,9 +124,11 @@ try {
     cdp = new DevTools(ws);
     await cdp.call('Runtime.enable');
     await waitFor(() => cdp.evaluate(`document.readyState === 'complete' && !!document.getElementById('connectButton')`), 'client page');
+    assert.equal(await cdp.evaluate(`document.getElementById('resetViewButton').disabled`), true);
     await cdp.evaluate(`document.getElementById('serverUrl').value = 'ws://127.0.0.1:${port}'; document.getElementById('connectButton').click()`);
-    const connected = `video.videoWidth === 640 && video.videoHeight === 480 && video.readyState >= 2 && peer?.connectionState === 'connected' && controls?.readyState === 'open'`;
-    await waitFor(() => cdp.evaluate(connected), 'decoded H.264 video and controls channel');
+    const connected = `video.videoWidth === ${dimensions[0]} && video.videoHeight === ${dimensions[1]} && video.readyState >= 2 && peer?.connectionState === 'connected' && controls?.readyState === 'open'`;
+    await waitFor(() => cdp.evaluate(connected), 'decoded video at requested resolution and controls channel');
+    await waitFor(() => cdp.evaluate(`cameraStatus.dataset.distance === '3' && !resetViewButton.disabled`), 'initial camera state');
     const statsExpression = `(async () => {
         const reports = Array.from((await peer.getStats()).values());
         const inbound = reports.find(r => r.type === 'inbound-rtp' && r.kind === 'video');
@@ -130,8 +140,10 @@ try {
     await delay(4000);
     const after = await cdp.evaluate(statsExpression);
     const fps = (after.frames - before.frames) * 1000 / (after.timestamp - before.timestamp);
-    assert.equal(after.codec, 'video/H264');
-    assert.ok(fps >= 45, `Decoded frame rate too low: ${fps}`);
+    assert.equal(after.width, dimensions[0]);
+    assert.equal(after.height, dimensions[1]);
+    assert.equal(after.codec?.toLowerCase(), `video/${expectedCodec}`);
+    assert.ok(fps >= targetFps * 0.75, `Decoded frame rate too low: ${fps}`);
     const pixels = await cdp.evaluate(`(() => {
         const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 480;
         const context = canvas.getContext('2d'); context.drawImage(video, 0, 0, 640, 480);
@@ -141,25 +153,40 @@ try {
         return { corner: Array.from(data.slice(0, 3)), colorful };
     })()`);
     assert.ok(pixels.corner.every(value => value < 45), 'Clear color was not decoded correctly');
-    assert.ok(pixels.colorful > 1000, 'Decoded frame does not contain the triangle');
+    assert.ok(pixels.colorful > 1000, 'Decoded frame does not contain the model');
     const bounds = await cdp.evaluate(`(() => { const r = video.getBoundingClientRect(); return { x:r.x+150, y:r.y+150 }; })()`);
     await cdp.call('Input.dispatchMouseEvent', { type: 'mousePressed', x: bounds.x, y: bounds.y, button: 'left', clickCount: 1 });
     await cdp.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: bounds.x + 80, y: bounds.y + 35, button: 'left', buttons: 1 });
     await cdp.call('Input.dispatchMouseEvent', { type: 'mouseReleased', x: bounds.x + 80, y: bounds.y + 35, button: 'left', clickCount: 1 });
-    const pose = await waitFor(() => cdp.evaluate(`cameraStatus.dataset.yaw ? { yaw: Number(cameraStatus.dataset.yaw), pitch: Number(cameraStatus.dataset.pitch) } : null`), 'server camera acknowledgement');
+    const pose = await waitFor(() => cdp.evaluate(`Number(cameraStatus.dataset.yaw) > 0.1 ? { yaw: Number(cameraStatus.dataset.yaw), pitch: Number(cameraStatus.dataset.pitch) } : null`), 'server camera acknowledgement');
     assert.ok(pose.yaw > 0.1 && pose.pitch > 0.05, 'Drag did not update the server camera');
+    await cdp.call('Input.dispatchMouseEvent', { type: 'mousePressed', x: bounds.x, y: bounds.y, button: 'right', clickCount: 1 });
+    await cdp.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: bounds.x + 40, y: bounds.y + 20, button: 'right', buttons: 2 });
+    await cdp.call('Input.dispatchMouseEvent', { type: 'mouseReleased', x: bounds.x + 40, y: bounds.y + 20, button: 'right', clickCount: 1 });
+    await waitFor(() => cdp.evaluate(`Math.abs(Number(cameraStatus.dataset.targetX)) > 0.01`), 'pan acknowledgement');
+    await cdp.call('Input.dispatchMouseEvent', { type: 'mouseWheel', x: bounds.x, y: bounds.y, deltaX: 0, deltaY: -240 });
+    const nearDistance = await waitFor(() => cdp.evaluate(`Number(cameraStatus.dataset.distance) < 2.9 ? Number(cameraStatus.dataset.distance) : null`), 'wheel zoom in');
+    await cdp.call('Input.dispatchMouseEvent', { type: 'mouseWheel', x: bounds.x, y: bounds.y, deltaX: 0, deltaY: 240 });
+    await waitFor(() => cdp.evaluate(`Number(cameraStatus.dataset.distance) > ${nearDistance + 0.1}`), 'wheel zoom out');
+    // Reset must cancel wheel input that has not yet been sent on the next animation frame.
+    await cdp.evaluate(`video.dispatchEvent(new WheelEvent('wheel', { deltaY: -240, cancelable: true })); resetViewButton.click()`);
+    await waitFor(() => cdp.evaluate(`cameraStatus.dataset.yaw === '0' && cameraStatus.dataset.pitch === '0' && cameraStatus.dataset.distance === '3' && cameraStatus.dataset.targetX === '0' && cameraStatus.dataset.targetY === '0' && cameraStatus.dataset.targetZ === '0'`), 'reset view acknowledgement');
+    await delay(150);
+    assert.equal(await cdp.evaluate(`cameraStatus.dataset.distance`), '3', 'Pending zoom ran after reset');
     const screenshot = await cdp.call('Page.captureScreenshot', { format: 'png' });
     await writeFile(join(artifacts, 'browser-test.png'), Buffer.from(screenshot.data, 'base64'));
     await cdp.evaluate(`document.getElementById('disconnectButton').click()`);
+    assert.equal(await cdp.evaluate(`resetViewButton.disabled`), true);
     await delay(250);
     await cdp.evaluate(`document.getElementById('connectButton').click()`);
     await waitFor(() => cdp.evaluate(connected), 'reconnection and keyframe recovery');
+    await waitFor(() => cdp.evaluate(`cameraStatus.dataset.distance === '3' && !resetViewButton.disabled`), 'camera state after reconnection');
     await cdp.evaluate(`document.getElementById('disconnectButton').click()`);
     await stop(server, 'SIGINT');
     assert.equal(server.exitCode, 0, 'Server did not shut down cleanly');
     assert.ok(!serverLog.includes('[validation error]'), serverLog);
     assert.deepEqual(pageErrors, [], 'Uncaught browser exceptions');
-    console.log(JSON.stringify({ codec: after.codec, decodedFps: fps, camera: pose, pixels,
+    console.log(JSON.stringify({ codec: after.codec, resolution: dimensions, targetFps, decodedFps: fps, camera: pose, pan: 'passed', zoom: 'passed', reset: 'passed', pixels,
         reconnect: 'passed', shutdown: 'passed', validationErrors: 0 }, null, 2));
 } catch (error) {
     console.error(serverLog);

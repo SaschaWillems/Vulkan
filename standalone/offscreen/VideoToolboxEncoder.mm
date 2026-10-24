@@ -141,11 +141,7 @@ VideoToolboxEncoder::~VideoToolboxEncoder() = default;
 bool VideoToolboxEncoder::Init(uint32_t width, uint32_t height, uint32_t fps, uint32_t bitrate) {
     auto& state = *impl_;
     state.Reset();
-    // Match the SDP's H.264 Baseline level 3.1 limits, including macroblocks per second.
-    const uint64_t macroblocks = ((uint64_t{width} + 15) / 16) * ((uint64_t{height} + 15) / 16);
-    if (!width || !height || width % 2 || height % 2 || !fps || fps > 120 ||
-        macroblocks > 3600 || macroblocks * fps > 108000 || !bitrate || bitrate > 14000000)
-        return false;
+    if (!ValidVideoSettings(width, height, fps, bitrate)) return false;
     try {
         CFHandle<CFNumberRef> w(Number(static_cast<int32_t>(width)));
         CFHandle<CFNumberRef> h(Number(static_cast<int32_t>(height)));
@@ -168,7 +164,11 @@ bool VideoToolboxEncoder::Init(uint32_t width, uint32_t height, uint32_t fps, ui
             nullptr, Impl::OnEncoded, &state, &state.session), "VTCompressionSessionCreate(hardware H.264)");
         Check(VTSessionSetProperty(state.session, kVTCompressionPropertyKey_RealTime, kCFBooleanTrue), "Set realtime");
         Check(VTSessionSetProperty(state.session, kVTCompressionPropertyKey_AllowFrameReordering, kCFBooleanFalse), "Disable B frames");
-        Check(VTSessionSetProperty(state.session, kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_Baseline_3_1), "Set H.264 profile");
+        const auto level = H264Level(width, height, fps, bitrate);
+        const CFStringRef profile = level == 31 ? kVTProfileLevel_H264_Baseline_3_1 :
+            level == 51 ? kVTProfileLevel_H264_Baseline_5_1 :
+            level == 52 ? kVTProfileLevel_H264_Baseline_5_2 : kVTProfileLevel_H264_Baseline_AutoLevel;
+        Check(VTSessionSetProperty(state.session, kVTCompressionPropertyKey_ProfileLevel, profile), "Set H.264 profile");
         SetInteger(state.session, kVTCompressionPropertyKey_ExpectedFrameRate, static_cast<int32_t>(fps));
         SetInteger(state.session, kVTCompressionPropertyKey_AverageBitRate, static_cast<int32_t>(bitrate));
         SetInteger(state.session, kVTCompressionPropertyKey_MaxKeyFrameInterval, static_cast<int32_t>(fps));

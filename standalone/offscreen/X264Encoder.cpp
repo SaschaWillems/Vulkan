@@ -21,9 +21,7 @@ X264Encoder::~X264Encoder() = default;
 
 bool X264Encoder::Init(uint32_t width, uint32_t height, uint32_t fps, uint32_t bitrate) {
     impl_ = std::make_unique<Impl>();
-    const uint64_t blocks = ((uint64_t{width} + 15) / 16) * ((uint64_t{height} + 15) / 16);
-    if (!width || !height || width % 2 || height % 2 || !fps || fps > 120 ||
-        blocks > 3600 || blocks * fps > 108000 || bitrate < 1000 || bitrate > 14000000) return false;
+    if (!ValidVideoSettings(width, height, fps, bitrate)) return false;
     auto& state = *impl_;
     x264_param_t parameters{};
     if (x264_param_default_preset(&parameters, "ultrafast", "zerolatency") < 0) return false;
@@ -40,7 +38,7 @@ bool X264Encoder::Init(uint32_t width, uint32_t height, uint32_t fps, uint32_t b
     parameters.i_keyint_max = static_cast<int>(fps);
     parameters.i_keyint_min = 1;
     parameters.i_scenecut_threshold = 0;
-    parameters.i_level_idc = 31;
+    parameters.i_level_idc = static_cast<int>(H264Level(width, height, fps, bitrate));
     parameters.b_annexb = 1;
     parameters.b_repeat_headers = 1;
     parameters.rc.i_rc_method = X264_RC_ABR;

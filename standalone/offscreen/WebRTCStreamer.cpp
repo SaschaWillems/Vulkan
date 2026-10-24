@@ -7,6 +7,8 @@
 #include <atomic>
 #include <deque>
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <mutex>
 #include <stdexcept>
 #include <utility>
@@ -16,10 +18,19 @@ using Json = nlohmann::json;
 bool ApplyControlMessage(CameraState& camera, std::string_view message) {
     if (message.size() > 512) return false;
     const auto value = Json::parse(message, nullptr, false);
-    if (!value.is_object() || !value.contains("type") || value["type"] != "rotate" ||
-        !value.contains("dx") || !value["dx"].is_number() ||
-        !value.contains("dy") || !value["dy"].is_number()) return false;
-    return camera.Rotate(value["dx"].get<double>(), value["dy"].get<double>());
+    if (!value.is_object() || !value.contains("type") || !value["type"].is_string()) return false;
+    if (value["type"] == "rotate" || value["type"] == "pan") {
+        if (!value.contains("dx") || !value["dx"].is_number() ||
+            !value.contains("dy") || !value["dy"].is_number()) return false;
+        return value["type"] == "pan" ? camera.Pan(value["dx"].get<double>(), value["dy"].get<double>()) :
+            camera.Rotate(value["dx"].get<double>(), value["dy"].get<double>());
+    }
+    if (value["type"] == "zoom") {
+        if (!value.contains("delta") || !value["delta"].is_number()) return false;
+        return camera.Zoom(value["delta"].get<double>());
+    }
+    if (value["type"] == "reset") { camera.Reset(); return true; }
+    return false;
 }
 
 namespace {
@@ -55,6 +66,16 @@ struct Session : std::enable_shared_from_this<Session> {
         } catch (...) { closed.store(true); }
     }
 
+    void SendCamera(const CameraState& camera) noexcept {
+        try {
+            const auto pose = camera.Load();
+            if (controls->isOpen() && controls->bufferedAmount() < 4096)
+                controls->send(Json{{"type", "camera"}, {"yaw", pose.yaw},
+                    {"pitch", pose.pitch}, {"distance", pose.distance},
+                    {"target", {pose.target.x,pose.target.y,pose.target.z}}}.dump());
+        } catch (...) { closed.store(true); }
+    }
+
     void AttachSocket() {
         const std::weak_ptr<Session> weak = shared_from_this();
         socket->onClosed([weak] { if (auto self = weak.lock()) self->closed.store(true); });
@@ -76,7 +97,8 @@ struct Session : std::enable_shared_from_this<Session> {
         });
     }
 
-    void Start(const rtc::Configuration& configuration, const std::shared_ptr<CameraState>& camera) {
+    void Start(const rtc::Configuration& configuration, const std::shared_ptr<CameraState>& camera,
+               const WebRTCStreamer::Options& options) {
         if (peer) throw std::runtime_error("Session already started");
         peer = std::make_shared<rtc::PeerConnection>(configuration);
         const std::weak_ptr<Session> weak = shared_from_this();
@@ -99,13 +121,22 @@ struct Session : std::enable_shared_from_this<Session> {
             }
         });
         rtc::Description::Video description("video", rtc::Description::Direction::SendOnly);
-        description.addH264Codec(96, "profile-level-id=42e01f;packetization-mode=1;level-asymmetry-allowed=1");
+        if (options.codec == VideoCodec::AV1) {
+            description.addAV1Codec(96, "profile=0;level-idx=17;tier=0");
+        } else {
+            std::ostringstream profile;
+            profile << "profile-level-id=42e0" << std::hex << std::setfill('0') << std::setw(2)
+                    << options.h264Level << ";packetization-mode=1;level-asymmetry-allowed=1";
+            description.addH264Codec(96, profile.str());
+        }
         description.addSSRC(42, "offscreen", "offscreen-stream", "offscreen-video");
         video = peer->addTrack(description);
         auto config = std::make_shared<rtc::RtpPacketizationConfig>(42, "offscreen", 96,
                                                                   rtc::H264RtpPacketizer::ClockRate);
-        auto packetizer = std::make_shared<rtc::H264RtpPacketizer>(
-            rtc::NalUnit::Separator::StartSequence, config);
+        std::shared_ptr<rtc::RtpPacketizer> packetizer;
+        if (options.codec == VideoCodec::AV1)
+            packetizer = std::make_shared<rtc::AV1RtpPacketizer>(rtc::AV1RtpPacketizer::Packetization::TemporalUnit, config);
+        else packetizer = std::make_shared<rtc::H264RtpPacketizer>(rtc::NalUnit::Separator::StartSequence, config);
         packetizer->addToChain(std::make_shared<rtc::RtcpSrReporter>(config));
         packetizer->addToChain(std::make_shared<rtc::RtcpNackResponder>());
         packetizer->addToChain(std::make_shared<rtc::PliHandler>([weak] {
@@ -114,22 +145,23 @@ struct Session : std::enable_shared_from_this<Session> {
         video->setMediaHandler(packetizer);
         video->onOpen([weak] { if (auto self = weak.lock()) self->keyframe.store(true); });
         controls = peer->createDataChannel("controls");
+        controls->onOpen([weak, camera] {
+            if (auto self = weak.lock()) self->SendCamera(*camera);
+        });
         controls->onMessage([weak, camera](rtc::message_variant data) {
             if (auto self = weak.lock()) {
                 try {
                     const auto* text = std::get_if<std::string>(&data);
                     if (!text || !ApplyControlMessage(*camera, *text)) return;
-                    const auto pose = camera->Load();
-                    if (self->controls->isOpen() && self->controls->bufferedAmount() < 4096) {
-                        self->controls->send(Json{{"type", "camera"}, {"yaw", pose.yaw}, {"pitch", pose.pitch}}.dump());
-                    }
+                    self->SendCamera(*camera);
                 } catch (...) { self->closed.store(true); }
             }
         });
         peer->setLocalDescription(rtc::Description::Type::Offer);
     }
 
-    void Process(const rtc::Configuration& configuration, const std::shared_ptr<CameraState>& camera) {
+    void Process(const rtc::Configuration& configuration, const std::shared_ptr<CameraState>& camera,
+                 const WebRTCStreamer::Options& options) {
         std::deque<std::string> incoming;
         {
             std::lock_guard lock(mutex);
@@ -139,7 +171,7 @@ struct Session : std::enable_shared_from_this<Session> {
             const auto message = Json::parse(text);
             const auto type = message.at("type").get<std::string>();
             if (type == "start") {
-                Start(configuration, camera);
+                Start(configuration, camera, options);
             } else if (type == "answer" && peer && !answered) {
                 peer->setRemoteDescription(rtc::Description(message.at("sdp").get<std::string>(), "answer"));
                 answered = true;
@@ -169,11 +201,12 @@ struct AcceptQueue {
 struct WebRTCStreamer::Impl {
     std::shared_ptr<CameraState> camera;
     rtc::Configuration configuration;
+    Options options;
     std::shared_ptr<AcceptQueue> incoming = std::make_shared<AcceptQueue>();
     std::unique_ptr<rtc::WebSocketServer> server;
     std::vector<std::shared_ptr<Session>> sessions;
 
-    Impl(std::shared_ptr<CameraState> state, const Options& options) : camera(std::move(state)) {
+    Impl(std::shared_ptr<CameraState> state, const Options& settings) : camera(std::move(state)), options(settings) {
         if (!camera) throw std::invalid_argument("WebRTCStreamer requires a camera");
         configuration.disableAutoNegotiation = true;
         configuration.maxMessageSize = 4096;
@@ -234,7 +267,7 @@ void WebRTCStreamer::Poll() {
         state.sessions.push_back(std::move(session));
     }
     for (const auto& session : state.sessions) {
-        try { session->Process(state.configuration, state.camera); }
+        try { session->Process(state.configuration, state.camera, state.options); }
         catch (const std::exception& error) {
             std::cerr << "Closing peer: " << error.what() << '\n';
             session->Signal({{"type", "error"}, {"message", "Invalid signaling or negotiation failed"}});
@@ -257,13 +290,13 @@ bool WebRTCStreamer::ConsumeKeyFrameRequest() {
     return needed;
 }
 
-void WebRTCStreamer::SendFrame(std::span<const uint8_t> annexB, std::chrono::duration<double> captureTime) {
-    if (annexB.empty()) return;
+void WebRTCStreamer::SendFrame(std::span<const uint8_t> encoded, std::chrono::duration<double> captureTime) {
+    if (encoded.empty()) return;
     for (const auto& session : impl_->sessions) {
         if (session->closed.load() || !session->video || !session->video->isOpen()) continue;
         try {
             // libdatachannel converts capture time to its randomized 90 kHz RTP timestamp base.
-            session->video->sendFrame(reinterpret_cast<const rtc::byte*>(annexB.data()), annexB.size(),
+            session->video->sendFrame(reinterpret_cast<const rtc::byte*>(encoded.data()), encoded.size(),
                                       rtc::FrameInfo(captureTime));
         } catch (const std::exception& error) {
             std::cerr << "Video send: " << error.what() << '\n';

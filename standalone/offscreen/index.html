@@ -6,7 +6,7 @@
 <title>Vulkan live stream</title>
 <style>
 :root { color-scheme: dark; font: 15px system-ui, sans-serif; background: #0b0f17; color: #e6edf7; }
-body { max-width: 900px; margin: 48px auto; padding: 0 24px; }
+body { max-width: 1600px; margin: 48px auto; padding: 0 24px; }
 h1 { font-size: 28px; margin-bottom: 8px; }
 p { color: #a9b7cb; line-height: 1.5; }
 form { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: 24px 0; }
@@ -15,17 +15,19 @@ input, button { font: inherit; border: 1px solid #36445a; border-radius: 8px; pa
 input { color: inherit; background: #111a28; }
 button { cursor: pointer; background: #8dc7ff; color: #0b2034; font-weight: 600; }
 button:disabled { opacity: .5; cursor: default; }
-video { width: 100%; aspect-ratio: 4/3; background: #080d16; border: 1px solid #28364a;
+video { width: 100%; aspect-ratio: 16/9; background: #080d16; border: 1px solid #28364a;
         border-radius: 12px; display: block; cursor: grab; user-select: none; }
 video.dragging { cursor: grabbing; }
 footer { display: flex; flex-wrap: wrap; gap: 10px 24px; margin-top: 16px; color: #a9b7cb; }
 #status { color: #8dc7ff; }
 details { margin-top: 14px; color: #a9b7cb; }
+.viewer-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 12px 0; }
+.viewer-controls span { color: #a9b7cb; }
 </style>
 </head>
 <body>
 <h1>Vulkan live stream</h1>
-<p>A rotating 3D triangle, rendered on the server. Drag the video to orbit the camera.</p>
+<p>A 3D model, rendered on the server. Drag to orbit, Shift-drag or right-drag to pan, and scroll to zoom.</p>
 <form id="connectionForm">
 <label>Signaling server<input id="serverUrl" value="ws://127.0.0.1:8080" spellcheck="false" required></label>
 <button id="connectButton" type="submit">Connect</button>
@@ -36,6 +38,10 @@ details { margin-top: 14px; color: #a9b7cb; }
 <label>ICE servers<input id="iceServers" value="[]" spellcheck="false"></label>
 </details>
 <p id="status" role="status" aria-live="polite">Ready to connect</p>
+<div class="viewer-controls" role="group" aria-label="Camera controls">
+<button id="resetViewButton" type="button" disabled>Reset View</button>
+<span>Drag to orbit · Shift/right-drag to pan · Scroll to zoom</span>
+</div>
 <video id="remoteVideo" autoplay playsinline muted></video>
 <footer><span id="stats">Waiting for video</span><span id="cameraStatus">Drag controls disconnected</span></footer>
 <script>
@@ -46,19 +52,25 @@ const stats = document.getElementById('stats');
 const cameraStatus = document.getElementById('cameraStatus');
 const connectButton = document.getElementById('connectButton');
 const disconnectButton = document.getElementById('disconnectButton');
+const resetViewButton = document.getElementById('resetViewButton');
 let peer = null, socket = null, controls = null;
 let generation = 0, statsTimer = null, lastStats = null;
-let dragging = false, lastX = 0, lastY = 0, pendingDx = 0, pendingDy = 0, dragFrame = null;
+let dragging = false, panning = false, lastX = 0, lastY = 0;
+let pendingDx = 0, pendingDy = 0, pendingPanX = 0, pendingPanY = 0, pendingZoom = 0, inputFrame = null;
+
+function clearPendingInput() {
+    if (inputFrame !== null) cancelAnimationFrame(inputFrame);
+    inputFrame = null;
+    pendingDx = pendingDy = pendingPanX = pendingPanY = pendingZoom = 0;
+    dragging = false;
+    video.classList.remove('dragging');
+}
 
 function disconnect(message = 'Disconnected') {
     ++generation;
     clearInterval(statsTimer);
     statsTimer = null;
-    if (dragFrame !== null) cancelAnimationFrame(dragFrame);
-    dragFrame = null;
-    dragging = false;
-    pendingDx = pendingDy = 0;
-    video.classList.remove('dragging');
+    clearPendingInput();
     if (controls) { controls.onclose = controls.onmessage = controls.onopen = null; controls.close(); }
     if (peer) { peer.ontrack = peer.onicecandidate = peer.ondatachannel = peer.onconnectionstatechange = null; peer.close(); }
     if (socket) { socket.onopen = socket.onmessage = socket.onclose = socket.onerror = null; socket.close(); }
@@ -67,11 +79,16 @@ function disconnect(message = 'Disconnected') {
     lastStats = null;
     connectButton.disabled = false;
     disconnectButton.disabled = true;
+    resetViewButton.disabled = true;
     status.textContent = message;
     stats.textContent = 'Waiting for video';
     cameraStatus.textContent = 'Drag controls disconnected';
     delete cameraStatus.dataset.yaw;
     delete cameraStatus.dataset.pitch;
+    delete cameraStatus.dataset.distance;
+    delete cameraStatus.dataset.targetX;
+    delete cameraStatus.dataset.targetY;
+    delete cameraStatus.dataset.targetZ;
 }
 
 async function connect(event) {
@@ -106,15 +123,33 @@ async function connect(event) {
         connection.ondatachannel = event => {
             if (current !== generation || event.channel.label !== 'controls') { event.channel.close(); return; }
             controls = event.channel;
-            controls.onopen = () => { cameraStatus.textContent = 'Drag controls connected'; };
-            controls.onclose = () => { cameraStatus.textContent = 'Drag controls disconnected'; };
+            controls.onopen = () => {
+                resetViewButton.disabled = false;
+                cameraStatus.textContent = 'Camera controls connected';
+            };
+            controls.onclose = () => {
+                resetViewButton.disabled = true;
+                clearPendingInput();
+                cameraStatus.textContent = 'Camera controls disconnected';
+            };
             controls.onmessage = event => {
                 try {
                     const pose = JSON.parse(event.data);
                     if (pose.type !== 'camera' || !Number.isFinite(pose.yaw) || !Number.isFinite(pose.pitch)) return;
+                    // Older servers acknowledge orbit without a distance field.
+                    const distance = pose.distance === undefined ? 3 : pose.distance;
+                    if (!Number.isFinite(distance) || distance <= 0) return;
                     cameraStatus.dataset.yaw = pose.yaw;
                     cameraStatus.dataset.pitch = pose.pitch;
-                    cameraStatus.textContent = `Camera ${(pose.yaw * 180 / Math.PI).toFixed(0)}° / ${(pose.pitch * 180 / Math.PI).toFixed(0)}°`;
+                    const target = pose.target === undefined ? [0,0,0] : pose.target;
+                    if (!Array.isArray(target) || target.length !== 3 || !target.every(Number.isFinite)) return;
+                    cameraStatus.dataset.targetX = target[0];
+                    cameraStatus.dataset.targetY = target[1];
+                    cameraStatus.dataset.targetZ = target[2];
+                    cameraStatus.dataset.distance = distance;
+                    cameraStatus.textContent = `Camera ${(pose.yaw * 180 / Math.PI).toFixed(0)}° / ` +
+                        `${(pose.pitch * 180 / Math.PI).toFixed(0)}° · Distance ${distance.toFixed(2)} · ` +
+                        `Target ${target.map(value => value.toFixed(2)).join(", ")}`;
                 } catch { /* Ignore malformed telemetry. */ }
             };
         };
@@ -130,6 +165,11 @@ async function connect(event) {
                 if (current !== generation) return;
                 const message = JSON.parse(event.data);
                 if (message.type === 'offer') {
+                    if (/a=rtpmap:\d+ AV1\//i.test(message.sdp)) {
+                        const codecs = RTCRtpReceiver.getCapabilities?.('video')?.codecs;
+                        if (codecs && !codecs.some(codec => codec.mimeType.toLowerCase() === 'video/av1'))
+                            throw new Error('This stream uses AV1. Use an AV1-capable browser or start the server at 2K/4K with H.264.');
+                    }
                     await connection.setRemoteDescription({ type: 'offer', sdp: message.sdp });
                     for (const candidate of pendingCandidates.splice(0)) await connection.addIceCandidate(candidate);
                     const answer = await connection.createAnswer();
@@ -163,15 +203,22 @@ async function connect(event) {
     } catch (error) { disconnect(error.message); }
 }
 
-function flushDrag() {
-    dragFrame = null;
-    if (controls?.readyState === 'open' && controls.bufferedAmount < 16384)
-        controls.send(JSON.stringify({ type: 'rotate', dx: pendingDx, dy: pendingDy }));
-    pendingDx = pendingDy = 0;
+function sendControl(message) {
+    if (controls?.readyState !== 'open' || controls.bufferedAmount >= 16384) return false;
+    try { controls.send(JSON.stringify(message)); return true; }
+    catch { return false; } // Closing can race input dispatch.
+}
+function flushControls() {
+    inputFrame = null;
+    if (pendingDx || pendingDy) sendControl({ type: 'rotate', dx: pendingDx, dy: pendingDy });
+    if (pendingPanX || pendingPanY) sendControl({ type: 'pan', dx: pendingPanX, dy: pendingPanY });
+    if (pendingZoom) sendControl({ type: 'zoom', delta: pendingZoom });
+    pendingDx = pendingDy = pendingPanX = pendingPanY = pendingZoom = 0;
 }
 video.addEventListener('mousedown', event => {
-    if (event.button !== 0 || controls?.readyState !== 'open') return;
+    if (![0,2].includes(event.button) || controls?.readyState !== 'open') return;
     dragging = true;
+    panning = event.button === 2 || event.shiftKey;
     lastX = event.clientX;
     lastY = event.clientY;
     video.classList.add('dragging');
@@ -180,16 +227,37 @@ video.addEventListener('mousedown', event => {
 window.addEventListener('mousemove', event => {
     if (!dragging) return;
     const bounds = video.getBoundingClientRect();
-    pendingDx += (event.clientX - lastX) / bounds.width;
-    pendingDy += (event.clientY - lastY) / bounds.height;
+    if (panning) {
+        pendingPanX += (event.clientX - lastX) / bounds.height;
+        pendingPanY += (event.clientY - lastY) / bounds.height;
+    } else {
+        pendingDx += (event.clientX - lastX) / bounds.width;
+        pendingDy += (event.clientY - lastY) / bounds.height;
+    }
     lastX = event.clientX;
     lastY = event.clientY;
-    if (dragFrame === null) dragFrame = requestAnimationFrame(flushDrag);
+    if (inputFrame === null) inputFrame = requestAnimationFrame(flushControls);
+});
+video.addEventListener('contextmenu', event => event.preventDefault());
+video.addEventListener('wheel', event => {
+    if (controls?.readyState !== 'open' || !Number.isFinite(event.deltaY)) return;
+    event.preventDefault();
+    const pixels = event.deltaY * (event.deltaMode === 1 ? 16 :
+        event.deltaMode === 2 ? video.getBoundingClientRect().height : 1);
+    pendingZoom = Math.max(-1, Math.min(1, pendingZoom + pixels / 600));
+    if (inputFrame === null) inputFrame = requestAnimationFrame(flushControls);
+}, { passive: false });
+resetViewButton.addEventListener('click', () => {
+    clearPendingInput();
+    sendControl({ type: 'reset' });
 });
 function endDrag() { dragging = false; video.classList.remove('dragging'); }
 window.addEventListener('mouseup', endDrag);
 window.addEventListener('blur', endDrag);
 window.addEventListener('beforeunload', () => disconnect());
+video.addEventListener('loadedmetadata', () => {
+    if (video.videoWidth && video.videoHeight) video.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
+});
 video.addEventListener('click', () => { if (video.paused && video.srcObject) video.play().catch(() => {}); });
 document.getElementById('connectionForm').addEventListener('submit', connect);
 disconnectButton.addEventListener('click', () => disconnect());

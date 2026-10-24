@@ -3,7 +3,7 @@ FROM nvidia/cuda:12.4.1-devel-ubuntu22.04 AS build
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates build-essential cmake ninja-build git pkg-config \
-    libvulkan-dev vulkan-tools mesa-vulkan-drivers libssl-dev libx264-dev \
+    libvulkan-dev vulkan-tools mesa-vulkan-drivers glslang-tools libssl-dev libx264-dev \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY . .
