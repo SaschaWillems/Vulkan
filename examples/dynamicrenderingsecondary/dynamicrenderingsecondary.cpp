@@ -1,6 +1,8 @@
 /*
  * Vulkan Example - Using secondary command buffers with VK_KHR_dynamic_rendering
  *
+ * @todo: rebase on multithreading sample
+ * 
  * Copyright (C) 2026 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
