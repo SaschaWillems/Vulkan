@@ -21,8 +21,7 @@ public:
 	VkPhysicalDeviceDynamicRenderingFeaturesKHR enabledDynamicRenderingFeaturesKHR{};
 
 	vkglTF::Model model;
-	VkCommandBuffer secondaryCmdBuf{ VK_NULL_HANDLE };
-	VkCommandBuffer secondaryUICmdBuf{ VK_NULL_HANDLE };
+	std::array<VkCommandBuffer, maxConcurrentFrames> secondaryCmdBufs{};
 
 	struct UniformData {
 		glm::mat4 projection;
@@ -205,6 +204,15 @@ public:
 		vkCmdBeginRenderingKHR = reinterpret_cast<PFN_vkCmdBeginRenderingKHR>(vkGetDeviceProcAddr(device, "vkCmdBeginRenderingKHR"));
 		vkCmdEndRenderingKHR = reinterpret_cast<PFN_vkCmdEndRenderingKHR>(vkGetDeviceProcAddr(device, "vkCmdEndRenderingKHR"));
 
+		// @todo
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo = {
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			.commandPool = cmdPool,
+			.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY,
+			.commandBufferCount = maxConcurrentFrames
+		};			
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, secondaryCmdBufs.data()));
+
 		loadAssets();
 		prepareUniformBuffers();
 		setupDescriptors();
@@ -215,34 +223,7 @@ public:
 	void buildCommandBuffer()
 	{
 		// nope
-		vkQueueWaitIdle(queue);
-
-		// New structures are used to define the attachments used in dynamic rendering
-		VkRenderingAttachmentInfoKHR colorAttachment{
-			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-			.imageView = swapChain.imageViews[currentImageIndex],
-			.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-			.clearValue = {.color = {0.0f,0.0f,0.0f,0.0f} },
-		};
-
-		// A single depth stencil attachment info can be used, but they can also be specified separately.
-		// When both are specified separately, the only requirement is that the image view is identical.			
-		VkRenderingAttachmentInfoKHR depthStencilAttachment{
-			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-			.imageView = depthStencil.view,
-			.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-			.clearValue = {.depthStencil = {1.0f,  0} }
-		};
-
-		// @todo: secondaryCmdBuf
-		if (!secondaryCmdBuf) {
-			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCmdBuf));
-		}
+		//vkQueueWaitIdle(queue);
 
 		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
@@ -267,26 +248,27 @@ public:
 				.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
 				.pInheritanceInfo = &inheritanceInfo,
 			};
-			VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryCmdBuf, &secCmdBufInfo));
+			VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryCmdBufs[currentBuffer], &secCmdBufInfo));
 
-			vkCmdSetViewport(secondaryCmdBuf, 0, 1, &viewport);
+			vkCmdSetViewport(secondaryCmdBufs[currentBuffer], 0, 1, &viewport);
 
-			vkCmdSetScissor(secondaryCmdBuf, 0, 1, &scissor);
+			vkCmdSetScissor(secondaryCmdBufs[currentBuffer], 0, 1, &scissor);
 
-			vkCmdBindDescriptorSets(secondaryCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
-			vkCmdBindPipeline(secondaryCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+			vkCmdBindDescriptorSets(secondaryCmdBufs[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+			vkCmdBindPipeline(secondaryCmdBufs[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-			model.draw(secondaryCmdBuf, vkglTF::RenderFlags::BindImages, pipelineLayout);
+			model.draw(secondaryCmdBufs[currentBuffer], vkglTF::RenderFlags::BindImages, pipelineLayout);
 
-			VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCmdBuf));
+			VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCmdBufs[currentBuffer]));
 
 			//
 
-			if (!secondaryUICmdBuf) {
-				VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-				VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryUICmdBuf));
-			}
+			//if (!secondaryUICmdBuf) {
+			//	VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
+			//	VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryUICmdBuf));
+			//}
 
+			/*
 			VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryUICmdBuf, &secCmdBufInfo));
 
 			vkCmdSetViewport(secondaryUICmdBuf, 0, 1, &viewport);
@@ -298,6 +280,7 @@ public:
 			drawUI(secondaryUICmdBuf);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(secondaryUICmdBuf));
+			*/
 		}
 
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
@@ -328,6 +311,24 @@ public:
 			VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
 			VkImageSubresourceRange{ VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 });
 
+		VkRenderingAttachmentInfoKHR colorAttachment{
+			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+			.imageView = swapChain.imageViews[currentImageIndex],
+			.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+			.clearValue = {.color = {0.0f,0.0f,0.0f,0.0f} },
+		};
+
+		VkRenderingAttachmentInfoKHR depthStencilAttachment{
+			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+			.imageView = depthStencil.view,
+			.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+			.clearValue = {.depthStencil = {1.0f,  0} }
+		};
+
 		VkRenderingInfoKHR renderingInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
 			.flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT_KHR,
@@ -342,7 +343,7 @@ public:
 		vkCmdBeginRenderingKHR(cmdBuffer, &renderingInfo);
 
 		// No draw calls here, all done by executing the secondaries
-		std::vector<VkCommandBuffer> cmdBuffers = { secondaryCmdBuf, secondaryUICmdBuf };
+		std::vector<VkCommandBuffer> cmdBuffers = { secondaryCmdBufs[currentBuffer]/*, secondaryUICmdBuf*/};
 		vkCmdExecuteCommands(cmdBuffer, static_cast<uint32_t>(cmdBuffers.size()), cmdBuffers.data());
 
 		vkCmdEndRenderingKHR(cmdBuffer);
