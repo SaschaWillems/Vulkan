@@ -1,6 +1,7 @@
 #include "PbrRenderer.h"
 #include "GltfLoader.h"
 #include "PbrShaders.h"
+#include "RayTracingRenderer.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 #include <array>
@@ -148,19 +149,29 @@ struct PbrRenderer::Impl {
     VkFormat depthFormat = VK_FORMAT_UNDEFINED;
     Image depth;
     GltfScene scene;
+    std::unique_ptr<RayTracingRenderer> rays;
+    ProgressiveHistory history;
     GpuBuffer vertices, indices, lighting, materials;
     std::vector<Image> textures;
     VkDescriptorSetLayout descriptorLayout = VK_NULL_HANDLE;
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> descriptors;
     VkPipelineLayout layout = VK_NULL_HANDLE;
-    VkShaderModule vert = VK_NULL_HANDLE, frag = VK_NULL_HANDLE;
+    VkShaderModule vert = VK_NULL_HANDLE, frag = VK_NULL_HANDLE, hybridFrag = VK_NULL_HANDLE;
     VkPipeline opaque = VK_NULL_HANDLE, blend = VK_NULL_HANDLE;
+    VkPipeline hybridOpaque = VK_NULL_HANDLE, hybridBlend = VK_NULL_HANDLE;
+    RenderMode mode = RenderMode::Raster;
     glm::mat4 viewProjection{1}, root{1};
     glm::vec3 eye{0};
     ~Impl() {
         if (device)
             (void)vkDeviceWaitIdle(device);
+        if (hybridBlend)
+            vkDestroyPipeline(device, hybridBlend, nullptr);
+        if (hybridOpaque)
+            vkDestroyPipeline(device, hybridOpaque, nullptr);
+        if (hybridFrag)
+            vkDestroyShaderModule(device, hybridFrag, nullptr);
         if (blend)
             vkDestroyPipeline(device, blend, nullptr);
         if (opaque)
@@ -175,6 +186,7 @@ struct PbrRenderer::Impl {
             vkDestroyDescriptorPool(device, descriptorPool, nullptr);
         if (descriptorLayout)
             vkDestroyDescriptorSetLayout(device, descriptorLayout, nullptr);
+        rays.reset();
         textures.clear();
         depth.Reset();
         vertices.Reset();
@@ -279,7 +291,7 @@ VkFormat PbrRenderer::DepthFormat() const { return impl_->depthFormat; }
 
 void PbrRenderer::Initialize(VkInstance instance, VkPhysicalDevice physical, VkDevice device, VkQueue queue,
                              uint32_t queueFamily, uint32_t width, uint32_t height,
-                             const std::filesystem::path& model) {
+                             const std::filesystem::path& model, bool rayQueries) {
     auto& state = *impl_;
     state.device = device;
     state.physical = physical;
@@ -290,7 +302,9 @@ void PbrRenderer::Initialize(VkInstance instance, VkPhysicalDevice physical, VkD
     allocator.instance = instance;
     allocator.physicalDevice = physical;
     allocator.device = device;
-    allocator.vulkanApiVersion = VK_API_VERSION_1_1;
+    allocator.vulkanApiVersion = rayQueries ? VK_API_VERSION_1_2 : VK_API_VERSION_1_1;
+    if (rayQueries)
+        allocator.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     VK_CHECK(vmaCreateAllocator(&allocator, &state.allocator));
     for (auto format : {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D16_UNORM}) {
         VkFormatProperties support{};
@@ -306,12 +320,16 @@ void PbrRenderer::Initialize(VkInstance instance, VkPhysicalDevice physical, VkD
                        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
     Upload upload;
     upload.Initialize(device, queueFamily);
+    const VkBufferUsageFlags geometryFlags =
+        rayQueries ? VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+                         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
+                   : 0u;
     state.vertices =
         UploadGltfBuffer(state.allocator, upload.commands, std::as_bytes(std::span(state.scene.vertices)),
-                         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, upload.staging);
+                         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | geometryFlags, upload.staging);
     state.indices =
         UploadGltfBuffer(state.allocator, upload.commands, std::as_bytes(std::span(state.scene.indices)),
-                         VK_BUFFER_USAGE_INDEX_BUFFER_BIT, upload.staging);
+                         VK_BUFFER_USAGE_INDEX_BUFFER_BIT | geometryFlags, upload.staging);
     state.lighting.Create(state.allocator, sizeof(Lighting), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, true);
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(physical, &properties);
@@ -391,6 +409,11 @@ void PbrRenderer::Initialize(VkInstance instance, VkPhysicalDevice physical, VkD
     }
     VK_CHECK(vmaFlushAllocation(state.allocator, state.materials.allocation, 0, VK_WHOLE_SIZE));
     upload.Submit(queue);
+    if (rayQueries) {
+        state.rays = std::make_unique<RayTracingRenderer>();
+        state.rays->Initialize(state.allocator, physical, device, queue, queueFamily, width, height,
+                               state.scene, state.vertices.buffer, state.indices.buffer);
+    }
     state.scene.vertices.clear();
     state.scene.vertices.shrink_to_fit();
     state.scene.indices.clear();
@@ -408,10 +431,14 @@ void PbrRenderer::CreatePipeline(VkRenderPass renderPass) {
     };
     module(shaders::VERT, state.vert);
     module(shaders::FRAG, state.frag);
+    if (state.rays)
+        module(shaders::HYBRID, state.hybridFrag);
     const VkPushConstantRange push{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Push)};
     auto layout = Info<VkPipelineLayoutCreateInfo>(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO);
-    layout.setLayoutCount = 1;
-    layout.pSetLayouts = &state.descriptorLayout;
+    const VkDescriptorSetLayout sets[] = {state.descriptorLayout,
+                                          state.rays ? state.rays->DescriptorLayout() : VK_NULL_HANDLE};
+    layout.setLayoutCount = state.rays ? 2u : 1u;
+    layout.pSetLayouts = sets;
     layout.pushConstantRangeCount = 1;
     layout.pPushConstantRanges = &push;
     VK_CHECK(vkCreatePipelineLayout(state.device, &layout, nullptr, &state.layout));
@@ -490,9 +517,20 @@ void PbrRenderer::CreatePipeline(VkRenderPass renderPass) {
     attachment.blendEnable = VK_TRUE;
     depth.depthWriteEnable = VK_FALSE;
     VK_CHECK(vkCreateGraphicsPipelines(state.device, VK_NULL_HANDLE, 1, &pipeline, nullptr, &state.blend));
+    if (state.rays) {
+        stages[1].module = state.hybridFrag;
+        attachment.blendEnable = VK_FALSE;
+        depth.depthWriteEnable = VK_TRUE;
+        VK_CHECK(vkCreateGraphicsPipelines(state.device, VK_NULL_HANDLE, 1, &pipeline, nullptr,
+                                           &state.hybridOpaque));
+        attachment.blendEnable = VK_TRUE;
+        depth.depthWriteEnable = VK_FALSE;
+        VK_CHECK(vkCreateGraphicsPipelines(state.device, VK_NULL_HANDLE, 1, &pipeline, nullptr,
+                                           &state.hybridBlend));
+    }
 }
 
-void PbrRenderer::PrepareFrame(CameraPose pose, float seconds, bool spin) {
+void PbrRenderer::PrepareFrame(CameraPose pose, float seconds, bool spin, RenderModeSnapshot mode) {
     auto& state = *impl_;
     const auto camera = CameraView(pose, static_cast<float>(state.width) / static_cast<float>(state.height));
     state.viewProjection = camera.projection * camera.view;
@@ -502,9 +540,26 @@ void PbrRenderer::PrepareFrame(CameraPose pose, float seconds, bool spin) {
     const Lighting lighting{glm::vec4(camera.eye, 1), glm::vec4(-0.4f, 0.8f, 0.6f, 0),
                             glm::vec4(3.5f, 3.5f, 3.5f, 0)};
     state.lighting.Write(&lighting, sizeof(lighting));
+    state.mode = mode.mode;
+    const auto samples = state.history.Begin(pose, mode, spin);
+    if (state.rays)
+        state.rays->Prepare(state.root, camera, mode.mode, samples);
 }
+void PbrRenderer::RecordBeforeRender(VkCommandBuffer commands) {
+    if (impl_->rays && impl_->mode != RenderMode::Raster)
+        impl_->rays->RecordUpdate(commands);
+}
+void PbrRenderer::Trace(VkCommandBuffer commands, VkImage target) {
+    if (!impl_->rays)
+        throw std::logic_error("Ray queries unavailable");
+    impl_->rays->Trace(commands, target);
+}
+void PbrRenderer::CompleteFrame() { impl_->history.Complete(); }
+uint32_t PbrRenderer::Samples() const { return impl_->history.Samples(); }
 void PbrRenderer::Draw(VkCommandBuffer commands) {
     const auto& state = *impl_;
+    if (state.rays)
+        state.rays->BindGraphics(commands, state.layout);
     const VkDeviceSize offset = 0;
     vkCmdBindVertexBuffers(commands, 0, 1, &state.vertices.buffer, &offset);
     vkCmdBindIndexBuffer(commands, state.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
@@ -525,8 +580,12 @@ void PbrRenderer::Draw(VkCommandBuffer commands) {
     });
     for (auto index : order) {
         const auto& draw = state.scene.draws[index];
-        vkCmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          state.scene.materials[draw.material].alphaMode == 2 ? state.blend : state.opaque);
+        vkCmdBindPipeline(
+            commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
+            state.mode == RenderMode::Hybrid
+                ? (state.scene.materials[draw.material].alphaMode == 2 ? state.hybridBlend
+                                                                       : state.hybridOpaque)
+                : (state.scene.materials[draw.material].alphaMode == 2 ? state.blend : state.opaque));
         vkCmdBindDescriptorSets(commands, VK_PIPELINE_BIND_POINT_GRAPHICS, state.layout, 0, 1,
                                 &state.descriptors[draw.material], 0, nullptr);
         const Push push{state.root * draw.transform, state.viewProjection};

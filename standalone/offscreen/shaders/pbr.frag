@@ -1,4 +1,8 @@
-#version 450
+#version 460
+#ifdef OFFSCREEN_RAY_QUERY
+#extension GL_GOOGLE_include_directive : require
+#include "ray_scene.glsl"
+#endif
 layout(location=0) in vec3 worldPosition;
 layout(location=1) in vec3 worldNormal;
 layout(location=2) in vec2 texCoord;
@@ -41,6 +45,15 @@ void main() {
     vec3 specular = distribution * geometry(nv,k) * geometry(nl,k) * fresnel / max(4.0*nv*nl,0.0001);
     vec3 diffuse = (1.0-fresnel) * (1.0-metallic) * base.rgb / PI;
     vec3 linear = (diffuse+specular)*lighting.radiance.rgb*nl + 0.12*base.rgb;
+#ifdef OFFSCREEN_RAY_QUERY
+    if (rtFrame.state.x == 1u) {
+        linear = (diffuse+specular)*lighting.radiance.rgb*nl*rayVisibility(worldPosition,n,l)+0.12*base.rgb;
+        if (metallic > 0.01) {
+            vec3 reflection = reflectedRadiance(worldPosition+n*0.001,reflect(-v,n));
+            linear += metallic*fresnel*reflection*(1.0-0.5*roughness);
+        }
+    }
+#endif
     vec3 mapped = linear/(linear+vec3(1.0));
     outColor = vec4(pow(mapped,vec3(1.0/2.2)), material.factors.w > 1.5 ? base.a : 1.0);
 }

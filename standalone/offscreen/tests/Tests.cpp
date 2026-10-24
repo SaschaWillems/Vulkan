@@ -34,7 +34,22 @@ void TestControls() {
     CameraState camera;
     Require(ApplyControlMessage(camera, R"({"type":"rotate","dx":0.1,"dy":-0.2})"), "Valid controls rejected");
     const auto pose = camera.Load();
-    Require(std::abs(pose.yaw - 0.314159f) < 0.00001f && pose.pitch < -0.62f, "Wrong orbit delta");
+    Require(std::abs(pose.yaw + 0.314159f) < 0.00001f &&
+            std::abs(pose.pitch + 0.628319f) < 0.00001f, "Wrong orbit direction");
+    RenderControls render;
+    Require(!ApplyControlMessage(camera,R"({"type":"set_render_mode","mode":"hybrid"})",&render),
+            "Unsupported RT request accepted");
+    Require(ApplyControlMessage(camera,R"({"type":"set_render_mode","mode":"raster"})",&render),
+            "Raster request rejected");
+    render.Configure(true,RenderMode::Raster);
+    Require(ApplyControlMessage(camera,R"({"type":"set_render_mode","mode":"hybrid"})",&render) &&
+            render.Load().mode==RenderMode::Hybrid,"Hybrid request rejected");
+    Require(ApplyControlMessage(camera,R"({"type":"set_render_mode","mode":"pathtrace"})",&render) &&
+            render.Load().mode==RenderMode::PathTraced,"Path request rejected");
+    for(const auto* message : {R"({"type":"set_render_mode"})",R"({"type":"set_render_mode","mode":1})",
+            R"({"type":"set_render_mode","mode":"invalid"})",R"({"type":"set_render_mode","mode":null})"})
+        Require(!ApplyControlMessage(camera,message,&render),"Malformed render mode accepted");
+    Require(camera.Load().revision==pose.revision,"Mode change modified camera pose");
     const std::vector<std::string> invalid = {
         "garbage", "null", "[]", R"({"type":"rotate","dx":"1","dy":0})",
         R"({"type":"rotate","dx":true,"dy":0})", R"({"type":"rotate","dx":0})",
@@ -76,7 +91,7 @@ void TestControls() {
         for (int n = 0; n < 1000; ++n) shared.Rotate(0.0001, 0);
     });
     writers.clear();
-    Require(std::abs(shared.Load().yaw - 0.4f * std::numbers::pi_v<float>) < 0.001f, "Concurrent orbit updates lost");
+    Require(std::abs(shared.Load().yaw + 0.4f * std::numbers::pi_v<float>) < 0.001f, "Concurrent orbit updates lost");
     CameraState concurrent, sequential;
     {
         std::jthread orbit([&] { for (int n = 0; n < 100; ++n) concurrent.Rotate(0.001, -0.001); });

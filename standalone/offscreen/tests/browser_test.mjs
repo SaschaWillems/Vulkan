@@ -129,6 +129,13 @@ try {
     const connected = `video.videoWidth === ${dimensions[0]} && video.videoHeight === ${dimensions[1]} && video.readyState >= 2 && peer?.connectionState === 'connected' && controls?.readyState === 'open'`;
     await waitFor(() => cdp.evaluate(connected), 'decoded video at requested resolution and controls channel');
     await waitFor(() => cdp.evaluate(`cameraStatus.dataset.distance === '3' && !resetViewButton.disabled`), 'initial camera state');
+    await waitFor(() => cdp.evaluate(`!renderMode.disabled && renderMode.dataset.mode === 'raster'`), 'renderer capabilities');
+    const rayQueries = await cdp.evaluate(`renderMode.dataset.rayQueries === 'true'`);
+    if (!rayQueries) {
+        await cdp.evaluate(`controls.send(JSON.stringify({type:'set_render_mode',mode:'hybrid'}))`);
+        await waitFor(() => cdp.evaluate(`renderStatus.textContent.includes('unsupported') && renderMode.dataset.mode === 'raster'`), 'unsupported RT acknowledgement');
+        assert.ok(await cdp.evaluate(connected), 'Unsupported mode disconnected WebRTC');
+    }
     const statsExpression = `(async () => {
         const reports = Array.from((await peer.getStats()).values());
         const inbound = reports.find(r => r.type === 'inbound-rtp' && r.kind === 'video');
@@ -148,18 +155,18 @@ try {
         const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 480;
         const context = canvas.getContext('2d'); context.drawImage(video, 0, 0, 640, 480);
         const data = context.getImageData(0, 0, 640, 480).data;
-        let colorful = 0;
-        for (let i = 0; i < data.length; i += 4) if (Math.max(data[i], data[i+1], data[i+2]) > 70) colorful++;
-        return { corner: Array.from(data.slice(0, 3)), colorful };
+        let modelPixels = 0;
+        for (let i = 0; i < data.length; i += 4) if (Math.min(data[i], data[i+1], data[i+2]) < 220) modelPixels++;
+        return { corner: Array.from(data.slice(0, 3)), modelPixels };
     })()`);
-    assert.ok(pixels.corner.every(value => value < 45), 'Clear color was not decoded correctly');
-    assert.ok(pixels.colorful > 1000, 'Decoded frame does not contain the model');
+    assert.ok(pixels.corner.every(value => value > 240), 'White clear color was not decoded correctly');
+    assert.ok(pixels.modelPixels > 1000, 'Decoded frame does not contain the model');
     const bounds = await cdp.evaluate(`(() => { const r = video.getBoundingClientRect(); return { x:r.x+150, y:r.y+150 }; })()`);
     await cdp.call('Input.dispatchMouseEvent', { type: 'mousePressed', x: bounds.x, y: bounds.y, button: 'left', clickCount: 1 });
     await cdp.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: bounds.x + 80, y: bounds.y + 35, button: 'left', buttons: 1 });
     await cdp.call('Input.dispatchMouseEvent', { type: 'mouseReleased', x: bounds.x + 80, y: bounds.y + 35, button: 'left', clickCount: 1 });
-    const pose = await waitFor(() => cdp.evaluate(`Number(cameraStatus.dataset.yaw) > 0.1 ? { yaw: Number(cameraStatus.dataset.yaw), pitch: Number(cameraStatus.dataset.pitch) } : null`), 'server camera acknowledgement');
-    assert.ok(pose.yaw > 0.1 && pose.pitch > 0.05, 'Drag did not update the server camera');
+    const pose = await waitFor(() => cdp.evaluate(`Number(cameraStatus.dataset.yaw) < -0.1 ? { yaw: Number(cameraStatus.dataset.yaw), pitch: Number(cameraStatus.dataset.pitch) } : null`), 'server camera acknowledgement');
+    assert.ok(pose.yaw < -0.1 && pose.pitch > 0.05, 'Drag did not rotate the server camera in the expected directions');
     await cdp.call('Input.dispatchMouseEvent', { type: 'mousePressed', x: bounds.x, y: bounds.y, button: 'right', clickCount: 1 });
     await cdp.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: bounds.x + 40, y: bounds.y + 20, button: 'right', buttons: 2 });
     await cdp.call('Input.dispatchMouseEvent', { type: 'mouseReleased', x: bounds.x + 40, y: bounds.y + 20, button: 'right', clickCount: 1 });

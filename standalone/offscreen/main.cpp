@@ -5,6 +5,7 @@
 // Vulkan 1.1 / C++20 offscreen renderer and cross-platform WebRTC server.
 // See README.md for SDK setup, build, browser connection, and tests.
 #include "PbrRenderer.h"
+#include "VulkanContext.h"
 #include "VideoConfig.h"
 #ifdef OFFSCREEN_STREAMING
 #include "EncoderFactory.h"
@@ -136,14 +137,18 @@ public:
     }
 
     void Initialize(bool allowGpuCapture = false, bool preferGpuBuffer = false,
-                    const std::filesystem::path& model = {}, bool spin = false) {
+                    const std::filesystem::path& model = {}, bool spin = false, RenderMode mode = RenderMode::Raster) {
         requestGpuCapture_ = allowGpuCapture;
         preferGpuBuffer_ = preferGpuBuffer;
+        renderMode_ = mode;
         createInstance();
         createDevice();
+        if (mode != RenderMode::Raster && !raySupport_.available)
+            throw std::runtime_error("Requested hardware render mode unavailable: " + raySupport_.reason);
+        renderMode_ = mode;
         spin_=spin;
         scene_=std::make_unique<PbrRenderer>();
-        scene_->Initialize(instance_,physicalDevice_,device_,queue_,queueFamily_,width,height,model);
+        scene_->Initialize(instance_,physicalDevice_,device_,queue_,queueFamily_,width,height,model,raySupport_.available);
         createTarget();
         createRenderPassAndFramebuffer();
         scene_->CreatePipeline(renderPass_);
@@ -170,9 +175,14 @@ public:
     }
 #endif
 
-    std::span<const uint8_t> RenderFrame(float seconds, CameraPose camera) {
+    bool SupportsRayQueries() const { return raySupport_.available; }
+    const std::string& RayQueryReason() const { return raySupport_.reason; }
+    uint32_t Samples() const { return scene_->Samples(); }
+    std::span<const uint8_t> RenderFrame(float seconds, CameraPose camera,
+                                      std::optional<RenderModeSnapshot> mode = {}) {
         // The previous frame's fence completed before rewriting uniforms or command buffers.
-        scene_->PrepareFrame(camera,seconds,spin_);
+        if (mode) renderMode_ = mode->mode;
+        scene_->PrepareFrame(camera,seconds,spin_, mode.value_or(RenderModeSnapshot{renderMode_,0}));
         const VkCommandBuffer commands = firstFrame_ ? firstCommands_ : commands_;
         VK_CHECK(vkResetCommandBuffer(commands,0));
         recordFrame(commands,firstFrame_);
@@ -206,6 +216,7 @@ public:
         if (validationErrors_.load(std::memory_order_relaxed) != 0)
             throw std::runtime_error("Vulkan validation reported errors");
         firstFrame_ = false;
+        scene_->CompleteFrame();
         if (gpuCapture_) return {};
         return {static_cast<const uint8_t*>(mapped_), static_cast<size_t>(pixelBytes)};
     }
@@ -243,6 +254,8 @@ private:
     VkQueue queue_{};
     std::unique_ptr<PbrRenderer> scene_;
     bool spin_ = false;
+    RayQuerySupport raySupport_;
+    RenderMode renderMode_ = RenderMode::Raster;
     bool requestGpuCapture_ = false, preferGpuBuffer_ = false;
     bool sharedImage_ = false, gpuCapture_ = false, firstFrame_ = true;
 #ifdef OFFSCREEN_HAS_NVENC
@@ -286,7 +299,10 @@ private:
         auto application = structure<VkApplicationInfo>(VK_STRUCTURE_TYPE_APPLICATION_INFO);
         application.pApplicationName = "Offscreen glTF viewer";
         // Vulkan 1.1 also satisfies portability_subset's properties2 dependency.
-        application.apiVersion = VK_API_VERSION_1_1;
+        uint32_t loaderVersion = VK_API_VERSION_1_0;
+        const auto getVersion = reinterpret_cast<PFN_vkEnumerateInstanceVersion>(vkGetInstanceProcAddr(nullptr,"vkEnumerateInstanceVersion"));
+        if (getVersion) VK_CHECK(getVersion(&loaderVersion));
+        application.apiVersion = std::min(loaderVersion, uint32_t(VK_API_VERSION_1_3));
         info.pApplicationInfo = &application;
 
         auto debug = structure<VkDebugUtilsMessengerCreateInfoEXT>(
@@ -348,6 +364,15 @@ private:
             });
         }
 #endif
+        if (renderMode_ != RenderMode::Raster) {
+            const auto hasRayQuery = [&](VkPhysicalDevice candidate) {
+                const auto available = enumerate<VkExtensionProperties>([&](auto* count,auto* values) {
+                    return vkEnumerateDeviceExtensionProperties(candidate,nullptr,count,values);
+                });
+                return hasExtension(available,VK_KHR_RAY_QUERY_EXTENSION_NAME);
+            };
+            std::stable_sort(devices.begin(),devices.end(),[&](auto a,auto b) { return hasRayQuery(a)>hasRayQuery(b); });
+        }
         for (VkPhysicalDevice candidate : devices) {
             VkPhysicalDeviceProperties properties{};
             vkGetPhysicalDeviceProperties(candidate, &properties);
@@ -358,12 +383,12 @@ private:
             VkFormatProperties formatProperties{};
             vkGetPhysicalDeviceFormatProperties(candidate, format, &formatProperties);
             constexpr VkFormatFeatureFlags required = VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
-                                                       VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
+                                                       VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
             if ((formatProperties.optimalTilingFeatures & required) != required) continue;
             VkImageFormatProperties imageProperties{};
             const VkResult supported = vkGetPhysicalDeviceImageFormatProperties(
                 candidate, format, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                 0, &imageProperties);
             if (supported == VK_ERROR_FORMAT_NOT_SUPPORTED) continue;
             VK_CHECK(supported);
@@ -408,6 +433,8 @@ private:
             extensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
         }
 #endif
+        raySupport_ = QueryRayQuerySupport(physicalDevice_, queueFamily_, available);
+        std::cout << "Vulkan ray queries: " << (raySupport_.available ? "available" : raySupport_.reason) << '\n';
         const float priority = 1.0f;
         auto queueInfo = structure<VkDeviceQueueCreateInfo>(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
         queueInfo.queueFamilyIndex = queueFamily_;
@@ -416,6 +443,8 @@ private:
         auto info = structure<VkDeviceCreateInfo>(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
         info.queueCreateInfoCount = 1;
         info.pQueueCreateInfos = &queueInfo;
+        RayQueryDeviceFeatures rayFeatures;
+        if (raySupport_.available) rayFeatures.Enable(info,extensions);
         info.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
         info.ppEnabledExtensionNames = extensions.data();
         VK_CHECK(vkCreateDevice(physicalDevice_, &info, nullptr, &device_));
@@ -466,7 +495,7 @@ private:
             info.arrayLayers = 1;
             info.samples = VK_SAMPLE_COUNT_1_BIT;
             info.tiling = VK_IMAGE_TILING_OPTIMAL;
-            info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
             info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             VK_CHECK(vkCreateImage(device_, &info, nullptr, &image_));
@@ -597,15 +626,22 @@ private:
         acquireImage.image = image_;
         acquireImage.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
         acquireImage.oldLayout = directImage && !first ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_UNDEFINED;
-        acquireImage.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        const bool pathTracing = renderMode_ == RenderMode::PathTraced;
+        const auto targetLayout = pathTracing ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        const VkAccessFlags targetAccess = pathTracing ? VK_ACCESS_TRANSFER_WRITE_BIT : VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        const VkPipelineStageFlags targetStage = pathTracing ? VK_PIPELINE_STAGE_TRANSFER_BIT : VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        acquireImage.newLayout = targetLayout;
         acquireImage.srcQueueFamilyIndex = directImage && !first ? VK_QUEUE_FAMILY_EXTERNAL : VK_QUEUE_FAMILY_IGNORED;
         acquireImage.dstQueueFamilyIndex = directImage && !first ? queueFamily_ : VK_QUEUE_FAMILY_IGNORED;
         acquireImage.srcAccessMask = directImage ? 0 : VK_ACCESS_TRANSFER_READ_BIT;
-        acquireImage.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        acquireImage.dstAccessMask = targetAccess;
         vkCmdPipelineBarrier(commands, directImage ? VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT : VK_PIPELINE_STAGE_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1, &acquireImage);
+            targetStage, 0, 0, nullptr, 0, nullptr, 1, &acquireImage);
+        scene_->RecordBeforeRender(commands);
+        if (pathTracing) scene_->Trace(commands,image_);
+        else {
         VkClearValue clear[2]{};
-        clear[0].color={{0.04f,0.06f,0.10f,1}}; clear[1].depthStencil={1,0};
+        clear[0].color={{1,1,1,1}}; clear[1].depthStencil={1,0};
         auto render = structure<VkRenderPassBeginInfo>(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO);
         render.renderPass = renderPass_;
         render.framebuffer = framebuffer_;
@@ -615,33 +651,34 @@ private:
         vkCmdBeginRenderPass(commands, &render, VK_SUBPASS_CONTENTS_INLINE);
         scene_->Draw(commands);
         vkCmdEndRenderPass(commands);
+        }
 
 #ifdef OFFSCREEN_HAS_NVENC
         if (directImage) {
             auto release = structure<VkImageMemoryBarrier>(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
-            release.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            release.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            release.srcAccessMask = targetAccess;
+            release.oldLayout = targetLayout;
             release.newLayout = VK_IMAGE_LAYOUT_GENERAL;
             release.srcQueueFamilyIndex = queueFamily_;
             release.dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL;
             release.image = image_;
             release.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-            vkCmdPipelineBarrier(commands, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            vkCmdPipelineBarrier(commands, targetStage,
                 VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &release);
             VK_CHECK(vkEndCommandBuffer(commands));
             return;
         }
 #endif
         auto imageBarrier = structure<VkImageMemoryBarrier>(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
-        imageBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        imageBarrier.srcAccessMask = targetAccess;
         imageBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-        imageBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        imageBarrier.oldLayout = targetLayout;
         imageBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
         imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         imageBarrier.image = image_;
         imageBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-        vkCmdPipelineBarrier(commands, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        vkCmdPipelineBarrier(commands, targetStage,
             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier);
 
         VkBufferImageCopy copy{};
@@ -718,16 +755,65 @@ void TestRendering(OffscreenRenderer& renderer) {
     std::cout << "Animation, orbit, pan, zoom, and framebuffer reuse passed\n";
 }
 
+int TestRayTracing(OffscreenRenderer& renderer, bool spin) {
+    if (!renderer.SupportsRayQueries()) {
+        std::cout << "RT test skipped: " << renderer.RayQueryReason() << '\n';
+        return 77;
+    }
+    CameraState camera;
+    RenderControls controls;
+    controls.Configure(true,RenderMode::Raster);
+    const auto frame = [&](float seconds = 0.f) {
+        const auto pixels=renderer.RenderFrame(seconds,camera.Load(),controls.Load());
+        if (pixels[0]!=255 || pixels[1]!=255 || pixels[2]!=255)
+            throw std::runtime_error("RT background is not white");
+        size_t visible=0;
+        for (size_t i=0;i<pixels.size();i+=4)
+            visible += std::min({pixels[i],pixels[i+1],pixels[i+2]}) < 220;
+        if (visible < 100) throw std::runtime_error("RT mode did not render scene geometry");
+        return std::vector<uint8_t>(pixels.begin(),pixels.end());
+    };
+    const auto raster=frame();
+    controls.Set(RenderMode::Hybrid);
+    const auto hybrid=frame();
+    if(raster==hybrid) throw std::runtime_error("Hybrid rays did not affect the frame");
+    controls.Set(RenderMode::PathTraced);
+    const auto firstPath = frame();
+    if(renderer.Samples()!=1) throw std::runtime_error("First path sample count is wrong");
+    const auto accumulated = frame(0.1f);
+    if(!spin && accumulated==firstPath) throw std::runtime_error("Path samples did not change the image");
+    if(renderer.Samples()!=(spin ? 1u : 2u)) throw std::runtime_error("Progressive accumulation failed");
+    camera.Rotate(0.1,0.05); frame();
+    if(renderer.Samples()!=1) throw std::runtime_error("Orbit did not reset accumulation");
+    camera.Pan(0.01,0.01); frame();
+    if(renderer.Samples()!=1) throw std::runtime_error("Pan did not reset accumulation");
+    camera.Zoom(-0.1); frame();
+    if(renderer.Samples()!=1) throw std::runtime_error("Zoom did not reset accumulation");
+    controls.Set(RenderMode::Raster); frame();
+    if(renderer.Samples()!=0) throw std::runtime_error("Leaving path mode retained samples");
+    controls.Set(RenderMode::PathTraced); frame();
+    if(renderer.Samples()!=1) throw std::runtime_error("Mode switch did not reset accumulation");
+    controls.Set(RenderMode::Hybrid); controls.Set(RenderMode::PathTraced); frame();
+    if(renderer.Samples()!=1) throw std::runtime_error("Intermediate mode switch did not invalidate history");
+    camera.Reset(); controls.Set(RenderMode::Raster);
+    if(frame()!=raster) throw std::runtime_error("Raster changed after mode transitions");
+    controls.Set(RenderMode::PathTraced);
+    if(frame()!=firstPath) throw std::runtime_error("Reset did not discard previous accumulation pixels");
+    std::cout << "RT shadows/reflections, path accumulation, camera resets, and live mode transitions passed\n";
+    return 0;
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
     try {
-        bool snapshot = false, renderTest = false, spin = false;
+        bool snapshot = false, renderTest = false, spin = false, rtTest = false;
         std::filesystem::path model;
         uint32_t frameLimit = 0;
         auto resolution = ResolutionPreset("2k");
         uint32_t fps = 60, bitrate = 0;
         std::string_view codecOption = "auto";
+        RenderMode renderMode = RenderMode::Raster;
         bool gpuBuffer = false;
 #ifdef OFFSCREEN_STREAMING
         WebRTCStreamer::Options options;
@@ -741,8 +827,14 @@ int main(int argc, char** argv) {
             };
             if (arg == "--snapshot") snapshot = true;
             else if (arg == "--model") model=next();
+            else if (arg == "--render-mode") {
+                const auto mode = ParseRenderMode(next());
+                if (!mode) throw std::invalid_argument("--render-mode expects raster, hybrid, or pathtrace");
+                renderMode = *mode;
+            }
             else if (arg == "--spin") spin=true;
             else if (arg == "--render-test") renderTest = true;
+            else if (arg == "--rt-test") rtTest = true;
             else if (arg == "--help") {
                 std::cout << "Usage: offscreen_renderer [--snapshot | --render-test]\n"
                              "       offscreen_renderer [--frames N] [--port 8080] [--bind 127.0.0.1]\n"
@@ -750,6 +842,7 @@ int main(int argc, char** argv) {
                              "                          [--encoder auto|hardware|software] [--nvenc-input image|buffer]\n"
                              "                          [--resolution 2k|4k|8k] [--fps 1..60] [--bitrate BPS]\n"
                              "                          [--codec auto|h264|av1] [--model path.gltf|path.glb] [--spin]\n"
+                             "                          [--render-mode raster|hybrid|pathtrace]\n"
                              "Default: 2k (2560x1440), 60 FPS, 16 Mbps; 8k auto-selects AV1.\n";
                 return 0;
             } else if (arg == "--frames") {
@@ -794,13 +887,18 @@ int main(int argc, char** argv) {
 #endif
         if ((snapshot && renderTest) || ((snapshot || renderTest) && frameLimit))
             throw std::invalid_argument("Snapshot, render test, and frame limit are separate modes");
+        if (rtTest) {
+            resolution.width=128; resolution.height=128;
+            snapshot=false; renderTest=false;
+        }
         OffscreenRenderer renderer(resolution);
         bool allowGpuCapture = false;
 #ifdef OFFSCREEN_HAS_NVENC
-        allowGpuCapture = !snapshot && !renderTest && encoderPreference != EncoderPreference::Software;
+        allowGpuCapture = !snapshot && !renderTest && !rtTest && encoderPreference != EncoderPreference::Software;
 #endif
-        renderer.Initialize(allowGpuCapture, gpuBuffer,model,spin || renderTest);
-        if (snapshot || renderTest) renderer.ConfigureCapture(false);
+        renderer.Initialize(allowGpuCapture, gpuBuffer,model,spin || renderTest,renderMode);
+        if (snapshot || renderTest || rtTest) renderer.ConfigureCapture(false);
+        if (rtTest) return TestRayTracing(renderer,spin);
         if (renderTest) { TestRendering(renderer); return 0; }
         if (snapshot) { renderer.RenderFrame(0, {}); renderer.SavePpm(); return 0; }
 #ifdef OFFSCREEN_STREAMING
@@ -814,6 +912,7 @@ int main(int argc, char** argv) {
         renderer.ConfigureCapture(encoder->UsesGpuFrames());
         rtc::InitLogger(rtc::LogLevel::Warning);
         auto camera = std::make_shared<CameraState>();
+        options.renderControls->Configure(renderer.SupportsRayQueries(),renderMode);
         WebRTCStreamer streamer(camera, options);
         std::signal(SIGINT, HandleSignal);
         std::signal(SIGTERM, HandleSignal);
@@ -835,7 +934,8 @@ int main(int argc, char** argv) {
             const auto captureTime = Clock::now() - start;
             const double seconds = std::chrono::duration<double>(captureTime).count();
             const double rotationPeriod = 2 * std::numbers::pi_v<double> / 0.65;
-            const auto rgba = renderer.RenderFrame(static_cast<float>(std::fmod(seconds, rotationPeriod)), camera->Load());
+            const auto rgba = renderer.RenderFrame(static_cast<float>(std::fmod(seconds, rotationPeriod)), camera->Load(), options.renderControls->Load());
+            options.renderControls->samples.store(renderer.Samples());
             if (streamer.ConsumeKeyFrameRequest()) encoder->RequestKeyFrame();
             // Bounded runs always encode, making the smoke test exercise the complete capture path.
             if (encoder->UsesGpuFrames() || frameLimit || streamer.HasViewers()) {

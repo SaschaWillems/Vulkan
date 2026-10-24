@@ -81,6 +81,52 @@ This is a static metallic-roughness viewer: animation, skinning deformation, mor
 
 The fallback asset and generated test fixtures require no downloads at runtime. A real Damaged Helmet GLB from [Khronos glTF Sample Assets](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/DamagedHelmet) was also used for development verification; it is not bundled with the application.
 
+## Raster, hybrid RT, and progressive path tracing
+
+Choose the initial mode with `--render-mode raster|hybrid|pathtrace` (default `raster`). The viewer's **Rendering** selector sends mode changes over the existing controls DataChannel. This changes the active pass at the next frame boundary without rebuilding the WebRTC connection, capture image, or framebuffer.
+
+```sh
+./build/linux-nvenc/offscreen_renderer --model path/to/model.glb \
+  --render-mode hybrid --encoder hardware --bind 0.0.0.0 --port 8080
+./build/linux-nvenc/offscreen_renderer --model path/to/model.glb \
+  --render-mode pathtrace --encoder hardware --resolution 2k --fps 30
+```
+
+| Mode | Rendering |
+| --- | --- |
+| `raster` (0) | Existing PBR visibility, lighting, and alpha blending; no per-pixel rays. |
+| `hybrid` (1) | Rasterized visibility plus ray-query directional shadows and one-bounce metallic reflections. |
+| `pathtrace` (2) | Compute ray-query primary rays, direct-light shadow queries, and up to four stochastic diffuse/specular bounces, with Russian roulette after the third hit. |
+
+Path tracing adds one sample per pixel per completed frame into an RGBA32F image. RGB accumulates linear radiance; alpha accumulates background coverage to preserve the white background. The displayed result is tone-mapped into an RGBA8 image and GPU-copied into the existing capture target. No raw-frame CPU copy is introduced on the NVENC path. Stationary frames progressively average samples; orbit, pan, zoom, reset, mode transitions, and `--spin` invalidate history. Animation therefore stays at one sample per frame. Sample history saturates at 16,777,215 samples to retain FP32 count precision. There is no denoiser or 60 FPS path-tracing guarantee.
+
+Raster uses its own shader/pipelines with no ray-query code, and TLAS updates are deferred while raster mode is active. RT uses per-primitive BLAS (shared for repeated index ranges), a TLAS containing normalized node transforms, aligned device-address scratch allocations, and device-local scene tables. Animated transforms update the TLAS in place before shading. AS build/update barriers and compute/image/capture barriers cover both raster↔compute transitions and subsequent external CUDA ownership transfers. All RT allocations are prepared on a capable device at startup, so runtime toggles do not allocate resources. RT scene tables must fit the device's `maxStorageBufferRange`; very large texture/geometry tables fail explicitly. Ray-hit textures use explicit LOD 0 with nearest/bilinear filtering and glTF wrap modes; raster retains mipmapped sampling. Alpha MASK is tested during traversal; ray visibility approximates BLEND with a 0.5 coverage cutoff, while raster keeps full alpha blending. Refraction, emissive lighting, normal maps, IBL importance sampling, MIS, and animated vertex deformation are not implemented.
+
+Device creation enables `VK_KHR_acceleration_structure`, `VK_KHR_ray_query`, and `VK_KHR_deferred_host_operations`, plus their buffer-device-address, SPIR-V 1.4, descriptor-indexing, and float-controls dependencies through Vulkan 1.2 core. The application requests up to Vulkan 1.3 while retaining the Vulkan 1.1 raster fallback. Only supported BDA/AS/ray-query feature bits are enabled. A graphics+compute queue and supported storage formats are required; acceleration-structure entry points are loaded only on capable devices.
+
+**macOS limitation:** the tested MoltenVK driver does not expose Vulkan acceleration structures or ray queries. Apple's Metal RT hardware alone does not provide these Vulkan extensions; the [MoltenVK supported-extension list](https://github.com/KhronosGroup/MoltenVK/blob/main/Docs/MoltenVK_Runtime_UserGuide.md) likewise does not list them. This implementation keeps raster streaming functional on macOS, disables unsupported viewer options, rejects unsupported CLI modes with a reason, and returns a rejected DataChannel acknowledgement without disconnecting. A native Metal RT backend would be separate work; this change does not implement one or emulate hardware RT on macOS.
+
+DataChannel requests and acknowledgements:
+
+```json
+{"type":"set_render_mode","mode":"pathtrace"}
+{"type":"render_mode","mode":"pathtrace","accepted":true,"rayQueries":true,"samples":42,"reason":""}
+```
+
+Acknowledgements report the requested/current mode and the last completed sample count; they are sent on connection and mode requests, rather than continuously. Invalid or unsupported requests leave the current mode intact and return `accepted:false` with a reason. Camera reset restores the view without changing the selected rendering mode.
+
+RT verification runs small 128×128 scenes, real shadow-pixel checks, alpha/mirrored hierarchy traversal, accumulation growth/reset, animated TLAS updates, and repeated raster/hybrid/path transitions. The RT tests skip with exit code 77 on unsupported drivers. On an NVIDIA target, require support rather than accepting skips:
+
+```sh
+cmake -S standalone/offscreen -B build/linux-debug -DCMAKE_BUILD_TYPE=Debug \
+  -DENABLE_NVENC=ON -DOFFSCREEN_GPU_TESTS=ON -DOFFSCREEN_RT_TESTS_REQUIRED=ON
+cmake --build build/linux-debug --parallel 4
+VK_LAYER_SETTINGS_PATH="$PWD/build/vulkan-validation" \
+  ctest --test-dir build/linux-debug --output-on-failure
+```
+
+The current RT implementation has passed Khronos synchronization validation on Mesa 25 lavapipe, including real textured GLB path tracing. Lavapipe is software ray traversal: this verifies the Vulkan path, not hardware acceleration or NVIDIA performance. The NVIDIA L4 RT/NVENC combination must still be tested on the target host. On macOS, raster and rejected-mode browser checks pass; RT tests correctly skip.
+
 ## Resolution and codec
 
 The server selects the source resolution at startup. All viewers receive that resolution; the browser scales the displayed video to the available space and reports the received pixel dimensions in its statistics. Here “2K” means QHD (2560×1440).
@@ -128,6 +174,10 @@ For separate networks, configure reachable STUN/TURN servers on both endpoints. 
 
 - `main.cpp`: Vulkan instance/device, MoltenVK portability, color/depth render pass, framebuffer, capture/readback, frame pacing, and `--model`/`--spin` CLI integration. Command buffers are reset/re-recorded after the preceding frame fence so each draw receives its current push constants.
 - `GltfLoader.h/.cpp`: fastgltf ingestion, scene validation, node transforms, materials/images, generated normals, fallback box, and VMA vertex/index buffers uploaded through staging buffers.
+- `VulkanContext.h/.cpp`: device ray-query capability checks and explicit feature enablement.
+- `AccelerationStructure.h/.cpp`: RAII BLAS/TLAS storage, device-address inputs, scratch alignment, builds, and transform updates.
+- `RayTracingRenderer.h/.cpp`: RT scene descriptors, FP32 accumulation, compute dispatch, and GPU-only capture-target copy.
+- `RenderMode.h`: atomic rendering controls and render-thread progressive history.
 - `PbrRenderer.h/.cpp`: VMA allocator, geometry/texture uploads, depth image, mip generation, material/lighting descriptors, opaque/blended pipelines, and 128-byte per-draw model/view-projection push constants. Model resources are initialized once; only camera/lighting data and draw commands change per frame.
 - `shaders/pbr.vert`, `shaders/pbr.frag`: build-time GLSL sources for world-space geometry/normal transforms and Cook-Torrance metallic-roughness shading. `shaders/embed.cmake` embeds SPIR-V; `Vma.cpp` and `StbImage.cpp` isolate third-party implementations.
 - `EncoderFactory.h/.cpp`: platform/backend selection, explicit hardware mode, and Linux CPU fallback. The original `IVideoEncoder::Init`/`EncodeFrame` contract is preserved; GPU backends additionally implement `UsesGpuFrames`/`EncodeGpuFrame` with a bound Vulkan frame source.
@@ -137,7 +187,7 @@ For separate networks, configure reachable STUN/TURN servers on both endpoints. 
 - `NvencZeroCopyEncoder.h/.cpp`: runtime-loaded NVENC session, registered CUDA device pointer, H.264 baseline with resolution/frame-rate-dependent levels or AV1 Main, P1 ultra-low-latency tuning, CBR, one-frame VBV, no B frames/lookahead, infinite GOP with an IDR every second or on request. H.264 SPS/PPS and Annex-B access units, or AV1 sequence headers and low-overhead OBUs, feed the matching WebRTC packetizer.
 - `X264Encoder.h/.cpp`: Linux CPU fallback using ultrafast/zerolatency, NV12, CBR/VBV, no B frames, and matching H.264 profile/keyframe behavior.
 - `WebRTCStreamer.h/.cpp`: WebSocket offer/answer and trickle ICE, bounded signaling queues, per-peer H.264/AV1 RTP packetization, RTCP sender reports, NACK retransmission, and PLI/FIR keyframe requests. Peer creation and teardown are serviced by `Poll()` on the render thread. Callbacks capture weak session references.
-- `Camera.h` (`CameraState.h` forwards to it): GLM look-at/perspective orbit camera with target, yaw/pitch, and distance. Immutable camera snapshots are published using shared-pointer atomic operations, including the portable API supported by Apple libc++; render reads observe one coherent pose while callbacks update it. Pan/rotate/zoom updates use compare/exchange and reset publishes the entire default pose. Pitch, distance, and target are bounded; non-finite inputs are rejected. `Scene.h` retains a small GLM MVP helper for tests.
+- `Camera.h` (`CameraState.h` forwards to it): GLM look-at/perspective orbit camera with target, yaw/pitch, and distance. Immutable camera snapshots are published using shared-pointer atomic operations, including the portable API needed by Apple libc++ and older libstdc++; render reads observe one coherent pose while callbacks update it. Pan/rotate/zoom updates use compare/exchange and reset publishes the entire default pose. Pitch, distance, and target are bounded; non-finite inputs are rejected. `Scene.h` retains a small GLM MVP helper for tests.
 - `index.html`: no external scripts or build tools. It handles asynchronous SDP/ICE ordering, video playback, batched orbit/pan/wheel input, reset, statistics, disconnection, and manual reconnection. Controls enable when the DataChannel opens. The server sends camera state on connection and after accepted commands.
 
 The `controls` DataChannel accepts `{"type":"rotate","dx":0.1,"dy":-0.1}`, `{"type":"pan","dx":0.1,"dy":-0.1}`, `{"type":"zoom","delta":-0.2}`, and `{"type":"reset"}`. Positive zoom deltas increase distance; negative deltas zoom in, with distance multiplied by `exp(delta)` after bounding the delta to [-1,1]. Orbit deltas are fractions of video width/height. Pan deltas are fractions of video height on both axes and translate the target along camera right/up vectors. Telemetry has the form `{"type":"camera","yaw":0,"pitch":0,"distance":3,"target":[0,0,0]}`. Reset also cancels unsent browser input so a pending wheel event cannot immediately undo it.
@@ -204,7 +254,7 @@ OFFSCREEN_TEST_ENCODER=hardware OFFSCREEN_TEST_NVENC_INPUT=buffer \
 
 The GPU tests require NVENC and fail if unavailable. Browser tests with `OFFSCREEN_TEST_NVENC_INPUT` also assert the NVENC backend, then check actual decoded video and interaction. Set `OFFSCREEN_TEST_ENCODER=software` to exercise x264 end to end. Chrome must run as a normal user; set `CHROME_BIN` if it is not on PATH.
 
-Development verification on this Apple Silicon host: all nine macOS CTests and all seven non-streaming CTests pass with synchronization validation, including glTF ingestion, PBR pixels/depth, alpha rendering, camera controls, readback, and VideoToolbox encoding. Browser tests pass with both the fallback box and a textured Damaged Helmet GLB at 2K, with the Release model stream decoding at approximately 30 FPS for a 30 FPS target. At 4K, the textured model achieves approximately 18 FPS: it fails the 30 FPS throughput check and passes the 20 FPS target check. Orbit, pan, zoom, reset, and reconnect pass at both resolutions. These MoltenVK validation runs report no Vulkan validation errors. Full 8K render/readback checks also pass; 60 FPS throughput is not guaranteed.
+Development verification on this Apple Silicon host: the existing raster/streaming tests and new mode-history tests pass with synchronization validation (RT GPU tests skip on unsupported macOS drivers), including glTF ingestion, PBR pixels/depth, alpha rendering, camera controls, readback, and VideoToolbox encoding. Browser tests pass with both the fallback box and a textured Damaged Helmet GLB at 2K, with the Release model stream decoding at approximately 30 FPS for a 30 FPS target. At 4K, the textured model achieves approximately 18 FPS: it fails the 30 FPS throughput check and passes the 20 FPS target check. Orbit, pan, zoom, reset, and reconnect pass at both resolutions. These MoltenVK validation runs report no Vulkan validation errors. Full 8K render/readback checks also pass; 60 FPS throughput is not guaranteed.
 
 The ARM64 Linux Docker image builds with Ubuntu 22.04's packaged CMake and native nvcc 12.4. Textured GLB and alpha-material render tests pass under Linux llvmpipe with the Khronos validation layer and synchronization validation enabled, with no validation errors. Linux x264 fallback has also been smoke-tested. The updated PBR renderer still requires runtime verification with NVIDIA Vulkan/CUDA/NVENC on the target host; local software rendering does not establish NVIDIA interop correctness. The previously working RunPod H.264 path, new 8K AV1 path, and x86-64 container should be retested after deploying this update.
 

@@ -22,19 +22,36 @@ FetchContent_Declare(stb GIT_REPOSITORY https://github.com/nothings/stb.git
     GIT_TAG 003501f6d7a8668ce8b6d875e34dd97ad0d5d5b5)
 FetchContent_MakeAvailable(fastgltf vma glm stb)
 find_program(OFFSCREEN_GLSLANG glslangValidator HINTS "$ENV{VULKAN_SDK}/bin" REQUIRED)
-foreach(stage vert frag)
-    add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pbr.${stage}.spv"
-        COMMAND "${OFFSCREEN_GLSLANG}" -V --target-env vulkan1.1 -Os
-            "${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.${stage}"
-            -o "${CMAKE_CURRENT_BINARY_DIR}/pbr.${stage}.spv"
-        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.${stage}" VERBATIM)
+foreach(shader vert frag hybrid path)
+    if(shader STREQUAL "hybrid")
+        set(source "pbr.frag")
+        set(target vulkan1.2)
+        set(defines -DOFFSCREEN_RAY_QUERY=1)
+    elseif(shader STREQUAL "path")
+        set(source "pathtrace.comp")
+        set(target vulkan1.2)
+        set(defines)
+    else()
+        set(source "pbr.${shader}")
+        set(target vulkan1.1)
+        set(defines)
+    endif()
+    add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pbr.${shader}.spv"
+        COMMAND "${OFFSCREEN_GLSLANG}" -V --target-env ${target} -Os ${defines}
+            "-I${CMAKE_CURRENT_SOURCE_DIR}/shaders" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/${source}"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/pbr.${shader}.spv"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/shaders/${source}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/shaders/ray_scene.glsl" VERBATIM)
 endforeach()
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/PbrShaders.h"
     COMMAND "${CMAKE_COMMAND}" "-DVERT=${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv"
         "-DFRAG=${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv"
+        "-DHYBRID=${CMAKE_CURRENT_BINARY_DIR}/pbr.hybrid.spv"
+        "-DPATH=${CMAKE_CURRENT_BINARY_DIR}/pbr.path.spv"
         "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/PbrShaders.h"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/shaders/embed.cmake"
     DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv" "${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv"
+        "${CMAKE_CURRENT_BINARY_DIR}/pbr.hybrid.spv" "${CMAKE_CURRENT_BINARY_DIR}/pbr.path.spv"
         "${CMAKE_CURRENT_SOURCE_DIR}/shaders/embed.cmake" VERBATIM)
 option(OFFSCREEN_STREAMING "Build the WebRTC streaming server" ON)
 set(ENABLE_NVENC AUTO CACHE STRING "Linux NVENC support: AUTO, ON (require SDK), or OFF")
@@ -53,6 +70,7 @@ function(offscreen_warnings target)
 endfunction()
 
 add_library(offscreen_scene STATIC GltfLoader.cpp PbrRenderer.cpp Vma.cpp StbImage.cpp
+    VulkanContext.cpp AccelerationStructure.cpp RayTracingRenderer.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/PbrShaders.h")
 target_include_directories(offscreen_scene PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}"
     PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
@@ -65,7 +83,7 @@ if(NOT MSVC)
 endif()
 target_link_libraries(offscreen_scene PUBLIC Vulkan::Vulkan fastgltf::fastgltf GPUOpen::VulkanMemoryAllocator glm::glm)
 target_compile_definitions(offscreen_scene PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE GLM_FORCE_RADIANS
-    VMA_VULKAN_VERSION=1001000)
+    VMA_VULKAN_VERSION=1002000)
 offscreen_warnings(offscreen_scene)
 add_executable(offscreen_renderer main.cpp)
 target_link_libraries(offscreen_renderer PRIVATE Vulkan::Vulkan Threads::Threads)
@@ -193,6 +211,27 @@ if(BUILD_TESTING)
     offscreen_warnings(gltf_loader_tests)
     add_dependencies(gltf_loader_tests gltf_fixtures)
     add_dependencies(offscreen_renderer gltf_fixtures)
+    add_executable(render_mode_tests tests/RenderModeTests.cpp)
+    target_link_libraries(render_mode_tests PRIVATE offscreen_scene)
+    offscreen_warnings(render_mode_tests)
+    add_test(NAME render_mode_history COMMAND render_mode_tests)
+    foreach(rt_scene hierarchy.glb alpha.gltf)
+        add_test(NAME "ray_queries_${rt_scene}" COMMAND offscreen_renderer --rt-test --model "${GLTF_FIXTURES}/${rt_scene}")
+        set_tests_properties("ray_queries_${rt_scene}" PROPERTIES TIMEOUT 180
+            FAIL_REGULAR_EXPRESSION "\\[validation (error|warning)\\]")
+    endforeach()
+    add_test(NAME ray_queries_animated COMMAND offscreen_renderer --rt-test --spin)
+    set_tests_properties(ray_queries_animated PROPERTIES TIMEOUT 180
+        FAIL_REGULAR_EXPRESSION "\\[validation (error|warning)\\]")
+    add_test(NAME ray_query_shadow_pixels COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/verify_rt.py" "$<TARGET_FILE:offscreen_renderer>"
+        "${GLTF_FIXTURES}/rt-shadow.gltf" "${CMAKE_CURRENT_BINARY_DIR}/rt-shadow-tests")
+    set_tests_properties(ray_query_shadow_pixels PROPERTIES TIMEOUT 180)
+    option(OFFSCREEN_RT_TESTS_REQUIRED "Fail ray-query tests when RT is unavailable" OFF)
+    if(NOT OFFSCREEN_RT_TESTS_REQUIRED)
+        set_tests_properties(ray_query_shadow_pixels ray_queries_hierarchy.glb ray_queries_alpha.gltf
+            ray_queries_animated PROPERTIES SKIP_RETURN_CODE 77)
+    endif()
     add_test(NAME gltf_asset_ingestion COMMAND gltf_loader_tests "${GLTF_FIXTURES}")
     add_test(NAME gltf_pbr_render_and_camera COMMAND offscreen_renderer --model "${GLTF_FIXTURES}/hierarchy.glb" --render-test)
     set_tests_properties(gltf_pbr_render_and_camera PROPERTIES TIMEOUT 60

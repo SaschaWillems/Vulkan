@@ -1,5 +1,5 @@
 set(result "#pragma once\n#include <cstdint>\nnamespace shaders {\n")
-foreach(stage VERT FRAG)
+foreach(stage VERT FRAG HYBRID PATH)
     file(READ "${${stage}}" hex HEX)
     string(LENGTH "${hex}" length)
     math(EXPR last "${length} - 8")

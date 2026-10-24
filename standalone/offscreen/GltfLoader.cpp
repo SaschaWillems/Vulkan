@@ -514,13 +514,28 @@ GpuBuffer UploadGltfBuffer(VmaAllocator allocator, VkCommandBuffer commands, std
     VkBufferMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    barrier.dstAccessMask = usage & VK_BUFFER_USAGE_INDEX_BUFFER_BIT ? VK_ACCESS_INDEX_READ_BIT
-                                                                     : VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+    VkPipelineStageFlags destination = 0;
+    if (usage & VK_BUFFER_USAGE_INDEX_BUFFER_BIT) {
+        barrier.dstAccessMask |= VK_ACCESS_INDEX_READ_BIT;
+        destination |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+    }
+    if (usage & VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) {
+        barrier.dstAccessMask |= VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+        destination |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+    }
+    if (usage & VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) {
+        barrier.dstAccessMask |= VK_ACCESS_SHADER_READ_BIT;
+        destination |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+    }
+    if (usage & VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR) {
+        barrier.dstAccessMask |= VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+        destination |= VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR;
+    }
     barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.buffer = target.buffer;
     barrier.size = VK_WHOLE_SIZE;
-    vkCmdPipelineBarrier(commands, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, 0, 0,
-                         nullptr, 1, &barrier, 0, nullptr);
+    vkCmdPipelineBarrier(commands, VK_PIPELINE_STAGE_TRANSFER_BIT, destination, 0, 0, nullptr, 1, &barrier, 0,
+                         nullptr);
     staging.push_back(std::move(upload));
     return target;
 }

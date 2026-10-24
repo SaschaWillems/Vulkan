@@ -3,6 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 #include <atomic>
+#include <cstdint>
 #include <cmath>
 #include <memory>
 #include <numbers>
@@ -10,6 +11,7 @@
 struct CameraPose {
     float yaw = 0, pitch = 0, distance = 3;
     glm::vec3 target{0};
+    uint64_t revision = 0;
 };
 struct CameraMatrices {
     glm::mat4 view, projection;
@@ -27,12 +29,12 @@ inline CameraMatrices CameraView(CameraPose pose, float aspect) {
 class CameraState {
 public:
     static constexpr float minDistance = 1.5f, maxDistance = 12.0f;
-    CameraPose Load() const { return *std::atomic_load_explicit(&pose_, std::memory_order_acquire); }
+    CameraPose Load() const { return *LoadPose(); }
     bool Rotate(double dx, double dy) {
         if (!std::isfinite(dx) || !std::isfinite(dy))
             return false;
         Update([&](CameraPose& pose) {
-            pose.yaw = std::remainder(pose.yaw + static_cast<float>(std::clamp(dx, -0.5, 0.5)) *
+            pose.yaw = std::remainder(pose.yaw - static_cast<float>(std::clamp(dx, -0.5, 0.5)) *
                                                      std::numbers::pi_v<float>,
                                       2 * std::numbers::pi_v<float>);
             pose.pitch = std::clamp(pose.pitch + static_cast<float>(std::clamp(dy, -0.5, 0.5)) *
@@ -66,22 +68,42 @@ public:
         return true;
     }
     void Reset() {
-        std::atomic_store_explicit(&pose_, std::make_shared<const CameraPose>(), std::memory_order_release);
+        Update([](CameraPose& pose) { pose = CameraPose{}; });
     }
 
 private:
     template <typename Transform> void Update(Transform transform) {
-        auto previous = std::atomic_load_explicit(&pose_, std::memory_order_acquire);
+        auto previous = LoadPose();
         for (;;) {
             CameraPose changed = *previous;
             transform(changed);
+            changed.revision = previous->revision + 1;
             auto next = std::make_shared<const CameraPose>(changed);
-            if (std::atomic_compare_exchange_weak_explicit(&pose_, &previous, next, std::memory_order_acq_rel,
-                                                           std::memory_order_acquire))
+            if (CompareExchange(previous, next))
                 return;
         }
     }
-    // Free shared_ptr atomic operations also work on Apple libc++ versions without atomic<shared_ptr>.
-    // Immutable snapshots keep target, orbit, and distance coherent together.
-    std::shared_ptr<const CameraPose> pose_{std::make_shared<const CameraPose>()};
+    using PosePointer = std::shared_ptr<const CameraPose>;
+    PosePointer LoadPose() const {
+#if !defined(__cpp_lib_atomic_shared_ptr) || __cpp_lib_atomic_shared_ptr < 201711L
+        return std::atomic_load_explicit(&pose_, std::memory_order_acquire);
+#else
+        return pose_.load(std::memory_order_acquire);
+#endif
+    }
+    bool CompareExchange(PosePointer& previous, const PosePointer& next) {
+#if !defined(__cpp_lib_atomic_shared_ptr) || __cpp_lib_atomic_shared_ptr < 201711L
+        return std::atomic_compare_exchange_weak_explicit(&pose_, &previous, next, std::memory_order_acq_rel,
+                                                          std::memory_order_acquire);
+#else
+        return pose_.compare_exchange_weak(previous, next, std::memory_order_acq_rel,
+                                           std::memory_order_acquire);
+#endif
+    }
+    // Some libc++ and older libstdc++ releases need the portable free shared_ptr atomic API.
+#if !defined(__cpp_lib_atomic_shared_ptr) || __cpp_lib_atomic_shared_ptr < 201711L
+    PosePointer pose_{std::make_shared<const CameraPose>()};
+#else
+    std::atomic<PosePointer> pose_{std::make_shared<const CameraPose>()};
+#endif
 };

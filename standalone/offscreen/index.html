@@ -11,11 +11,11 @@ h1 { font-size: 28px; margin-bottom: 8px; }
 p { color: #a9b7cb; line-height: 1.5; }
 form { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: 24px 0; }
 label { display: grid; gap: 6px; flex: 1; min-width: 230px; }
-input, button { font: inherit; border: 1px solid #36445a; border-radius: 8px; padding: 10px 14px; }
-input { color: inherit; background: #111a28; }
+input, button, select { font: inherit; border: 1px solid #36445a; border-radius: 8px; padding: 10px 14px; }
+input, select { color: inherit; background: #111a28; }
 button { cursor: pointer; background: #8dc7ff; color: #0b2034; font-weight: 600; }
 button:disabled { opacity: .5; cursor: default; }
-video { width: 100%; aspect-ratio: 16/9; background: #080d16; border: 1px solid #28364a;
+video { width: 100%; aspect-ratio: 16/9; background: #fff; border: 1px solid #28364a;
         border-radius: 12px; display: block; cursor: grab; user-select: none; }
 video.dragging { cursor: grabbing; }
 footer { display: flex; flex-wrap: wrap; gap: 10px 24px; margin-top: 16px; color: #a9b7cb; }
@@ -40,6 +40,10 @@ details { margin-top: 14px; color: #a9b7cb; }
 <p id="status" role="status" aria-live="polite">Ready to connect</p>
 <div class="viewer-controls" role="group" aria-label="Camera controls">
 <button id="resetViewButton" type="button" disabled>Reset View</button>
+<label>Rendering<select id="renderMode" disabled>
+<option value="raster">Raster</option><option value="hybrid" disabled>Hybrid RT</option>
+<option value="pathtrace" disabled>Path traced</option></select></label>
+<span id="renderStatus">Waiting for renderer capabilities</span>
 <span>Drag to orbit · Shift/right-drag to pan · Scroll to zoom</span>
 </div>
 <video id="remoteVideo" autoplay playsinline muted></video>
@@ -52,6 +56,11 @@ const stats = document.getElementById('stats');
 const cameraStatus = document.getElementById('cameraStatus');
 const connectButton = document.getElementById('connectButton');
 const disconnectButton = document.getElementById('disconnectButton');
+const renderMode = document.getElementById('renderMode');
+const renderStatus = document.getElementById('renderStatus');
+renderMode.addEventListener('change', () => {
+    if (controls?.readyState === 'open') controls.send(JSON.stringify({type:'set_render_mode', mode:renderMode.value}));
+});
 const resetViewButton = document.getElementById('resetViewButton');
 let peer = null, socket = null, controls = null;
 let generation = 0, statsTimer = null, lastStats = null;
@@ -80,6 +89,8 @@ function disconnect(message = 'Disconnected') {
     connectButton.disabled = false;
     disconnectButton.disabled = true;
     resetViewButton.disabled = true;
+    renderMode.disabled = true;
+    renderStatus.textContent = 'Waiting for renderer capabilities';
     status.textContent = message;
     stats.textContent = 'Waiting for video';
     cameraStatus.textContent = 'Drag controls disconnected';
@@ -130,11 +141,23 @@ async function connect(event) {
             controls.onclose = () => {
                 resetViewButton.disabled = true;
                 clearPendingInput();
+                renderMode.disabled = true;
                 cameraStatus.textContent = 'Camera controls disconnected';
             };
             controls.onmessage = event => {
                 try {
                     const pose = JSON.parse(event.data);
+                    if (pose.type === 'render_mode') {
+                        if (!['raster','hybrid','pathtrace'].includes(pose.mode)) return;
+                        renderMode.value = pose.mode;
+                        renderMode.disabled = false;
+                        for (const option of renderMode.options) option.disabled = option.value !== 'raster' && !pose.rayQueries;
+                        renderStatus.textContent = pose.accepted === false ? pose.reason :
+                            (pose.rayQueries ? 'Vulkan ray queries available' : 'Raster only: Vulkan ray queries unavailable');
+                        renderMode.dataset.rayQueries = String(!!pose.rayQueries);
+                        renderMode.dataset.mode = pose.mode;
+                        return;
+                    }
                     if (pose.type !== 'camera' || !Number.isFinite(pose.yaw) || !Number.isFinite(pose.pitch)) return;
                     // Older servers acknowledge orbit without a distance field.
                     const distance = pose.distance === undefined ? 3 : pose.distance;

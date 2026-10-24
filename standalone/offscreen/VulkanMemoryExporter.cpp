@@ -57,7 +57,7 @@ void VulkanMemoryExporter::Initialize(VkPhysicalDevice physicalDevice, VkDevice 
         query.format = VK_FORMAT_R8G8B8A8_UNORM;
         query.type = VK_IMAGE_TYPE_2D;
         query.tiling = VK_IMAGE_TILING_OPTIMAL;
-        query.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        query.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         auto exportProperties = Info<VkExternalImageFormatProperties>(VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES);
         auto supported = Info<VkImageFormatProperties2>(VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2);
         supported.pNext = &exportProperties;

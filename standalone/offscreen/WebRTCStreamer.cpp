@@ -15,7 +15,7 @@
 
 using Json = nlohmann::json;
 
-bool ApplyControlMessage(CameraState& camera, std::string_view message) {
+bool ApplyControlMessage(CameraState& camera, std::string_view message, RenderControls* render) {
     if (message.size() > 512) return false;
     const auto value = Json::parse(message, nullptr, false);
     if (!value.is_object() || !value.contains("type") || !value["type"].is_string()) return false;
@@ -28,6 +28,11 @@ bool ApplyControlMessage(CameraState& camera, std::string_view message) {
     if (value["type"] == "zoom") {
         if (!value.contains("delta") || !value["delta"].is_number()) return false;
         return camera.Zoom(value["delta"].get<double>());
+    }
+    if (value["type"] == "set_render_mode") {
+        if (!render || !value.contains("mode") || !value["mode"].is_string()) return false;
+        const auto mode = ParseRenderMode(value["mode"].get<std::string>());
+        return mode && render->Set(*mode);
     }
     if (value["type"] == "reset") { camera.Reset(); return true; }
     return false;
@@ -76,6 +81,14 @@ struct Session : std::enable_shared_from_this<Session> {
         } catch (...) { closed.store(true); }
     }
 
+    void SendRenderMode(const RenderControls& render, bool accepted = true) noexcept {
+        try {
+            if (controls->isOpen()) controls->send(Json{{"type","render_mode"},
+                {"mode",RenderModeName(render.Load().mode)}, {"accepted",accepted},
+                {"rayQueries",render.SupportsRayQueries()}, {"samples",render.samples.load()},
+                {"reason",accepted ? "" : "Mode unsupported or invalid; hardware Vulkan ray queries are required"}}.dump());
+        } catch (...) { closed.store(true); }
+    }
     void AttachSocket() {
         const std::weak_ptr<Session> weak = shared_from_this();
         socket->onClosed([weak] { if (auto self = weak.lock()) self->closed.store(true); });
@@ -145,15 +158,22 @@ struct Session : std::enable_shared_from_this<Session> {
         video->setMediaHandler(packetizer);
         video->onOpen([weak] { if (auto self = weak.lock()) self->keyframe.store(true); });
         controls = peer->createDataChannel("controls");
-        controls->onOpen([weak, camera] {
-            if (auto self = weak.lock()) self->SendCamera(*camera);
+        const auto render = options.renderControls;
+        controls->onOpen([weak, camera, render] {
+            if (auto self = weak.lock()) { self->SendCamera(*camera); self->SendRenderMode(*render); }
         });
-        controls->onMessage([weak, camera](rtc::message_variant data) {
+        controls->onMessage([weak, camera, render](rtc::message_variant data) {
             if (auto self = weak.lock()) {
                 try {
                     const auto* text = std::get_if<std::string>(&data);
-                    if (!text || !ApplyControlMessage(*camera, *text)) return;
-                    self->SendCamera(*camera);
+                    if (!text || text->size() > 512) return;
+                    const bool accepted = ApplyControlMessage(*camera, *text, render.get());
+                    const auto message = Json::parse(*text,nullptr,false);
+                    if (message.is_object() && message.value("type",Json{}) == "set_render_mode") {
+                        self->SendRenderMode(*render,accepted);
+                        return;
+                    }
+                    if (accepted) self->SendCamera(*camera);
                 } catch (...) { self->closed.store(true); }
             }
         });
@@ -208,6 +228,7 @@ struct WebRTCStreamer::Impl {
 
     Impl(std::shared_ptr<CameraState> state, const Options& settings) : camera(std::move(state)), options(settings) {
         if (!camera) throw std::invalid_argument("WebRTCStreamer requires a camera");
+        if (!options.renderControls) throw std::invalid_argument("WebRTCStreamer requires render controls");
         configuration.disableAutoNegotiation = true;
         configuration.maxMessageSize = 4096;
         for (const auto& url : options.iceServers) configuration.iceServers.emplace_back(url);

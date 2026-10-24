@@ -1,0 +1,71 @@
+#version 460
+#extension GL_GOOGLE_include_directive : require
+#include "ray_scene.glsl"
+layout(local_size_x=8,local_size_y=8) in;
+layout(rgba32f,set=1,binding=7) uniform image2D accumulation;
+layout(rgba8,set=1,binding=8) uniform writeonly image2D outputImage;
+uint randomState;
+float randomFloat() {
+    randomState ^= randomState << 13; randomState ^= randomState >> 17; randomState ^= randomState << 5;
+    return float(randomState >> 8)*(1.0/16777216.0);
+}
+vec3 localDirection(vec3 n, vec3 local) {
+    vec3 t = normalize(cross(abs(n.z)<0.999 ? vec3(0,0,1) : vec3(1,0,0),n));
+    return normalize(t*local.x+cross(n,t)*local.y+n*local.z);
+}
+vec3 fresnel(vec3 f0, float cosine) { return f0+(1.0-f0)*pow(1.0-clamp(cosine,0.0,1.0),5.0); }
+vec3 pathRadiance(vec3 origin, vec3 direction, out bool primaryMiss) {
+    const float PI = 3.14159265359;
+    vec3 radiance = vec3(0), throughput = vec3(1); primaryMiss = false;
+    for (int bounce=0; bounce<4; ++bounce) {
+        Surface s;
+        if (!traceScene(origin,direction,100.0,s)) {
+            if (bounce==0) primaryMiss = true;
+            radiance += throughput; break;
+        }
+        vec3 view = -direction, n = s.normal;
+        radiance += throughput*rayDirect(s,view);
+        vec3 f0 = mix(vec3(0.04),s.base,s.metallic);
+        float specularProbability = mix(0.25,0.9,s.metallic);
+        float u = randomFloat(), v = randomFloat(), phi = 2.0*PI*v;
+        if (randomFloat()<specularProbability) {
+            float a2 = pow(s.roughness,4.0);
+            float cosine = sqrt((1.0-u)/(1.0+(a2-1.0)*u));
+            vec3 h = localDirection(n,vec3(sqrt(max(0.0,1.0-cosine*cosine))*vec2(cos(phi),sin(phi)),cosine));
+            direction = reflect(-view,h);
+            float nv=max(dot(n,view),0.0001), nl=dot(n,direction), nh=max(dot(n,h),0.0001), vh=max(dot(view,h),0.0001);
+            if (nl<=0.0) break;
+            float k=pow(s.roughness+1.0,2.0)/8.0;
+            float geometry=nv/(nv*(1.0-k)+k)*nl/(nl*(1.0-k)+k);
+            throughput *= fresnel(f0,vh)*geometry*vh/(nv*nh*specularProbability);
+        } else {
+            direction = localDirection(n,vec3(sqrt(u)*vec2(cos(phi),sin(phi)),sqrt(1.0-u)));
+            throughput *= (1.0-fresnel(f0,max(dot(n,view),0.0)))*(1.0-s.metallic)*s.base/(1.0-specularProbability);
+        }
+        origin = s.position+n*0.001;
+        if (bounce>=2) {
+            float survival=clamp(max(throughput.r,max(throughput.g,throughput.b)),0.05,0.95);
+            if (randomFloat()>survival) break;
+            throughput /= survival;
+        }
+    }
+    return max(radiance,vec3(0));
+}
+void main() {
+    ivec2 pixel=ivec2(gl_GlobalInvocationID.xy), size=ivec2(rtFrame.state.zw);
+    if (any(greaterThanEqual(pixel,size))) return;
+    randomState = uint(pixel.x)*1973u+uint(pixel.y)*9277u+rtFrame.state.y*26699u+911u;
+    vec2 ndc=(vec2(pixel)+vec2(randomFloat(),randomFloat()))/vec2(size)*2.0-1.0;
+    vec4 farPoint=rtFrame.inverseViewProjection*vec4(ndc,1,1);
+    vec3 direction=normalize(farPoint.xyz/farPoint.w-rtFrame.eye.xyz);
+    bool primaryMiss;
+    vec3 sampleValue=pathRadiance(rtFrame.eye.xyz,direction,primaryMiss);
+    // Alpha tracks primary-ray background coverage so an empty white background stays exactly white.
+    vec4 value=vec4(sampleValue,primaryMiss ? 1.0 : 0.0);
+    float count=float(rtFrame.state.y);
+    vec4 average=rtFrame.state.y==0u ? value : (imageLoad(accumulation,pixel)*count+value)/(count+1.0);
+    imageStore(accumulation,pixel,average);
+    vec3 mapped=pow(average.rgb/(average.rgb+vec3(1)),vec3(1.0/2.2));
+    mapped=mix(mapped,vec3(1),average.a);
+    imageStore(outputImage,pixel,vec4(mapped,1));
+}

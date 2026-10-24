@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CameraState.h"
+#include "RenderMode.h"
 #include "VideoConfig.h"
 #include <chrono>
 #include <cstdint>
@@ -11,7 +12,7 @@
 #include <vector>
 
 // Invalid, oversized, or non-finite messages leave the camera untouched.
-bool ApplyControlMessage(CameraState& camera, std::string_view message);
+bool ApplyControlMessage(CameraState& camera, std::string_view message, RenderControls* render = nullptr);
 
 class WebRTCStreamer {
 public:
@@ -21,6 +22,7 @@ public:
         std::vector<std::string> iceServers;
         VideoCodec codec = VideoCodec::H264;
         uint32_t h264Level = 51;
+        std::shared_ptr<RenderControls> renderControls = std::make_shared<RenderControls>();
     };
     WebRTCStreamer(std::shared_ptr<CameraState> camera, const Options& options);
     ~WebRTCStreamer();

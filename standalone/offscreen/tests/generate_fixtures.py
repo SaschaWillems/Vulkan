@@ -174,5 +174,19 @@ for mesh in depth['meshes']:
 depth['materials'] = [{'pbrMetallicRoughness': {'baseColorFactor': color, 'metallicFactor': 0, 'roughnessFactor': 1}}
                       for color in ([0.9, 0.02, 0.02, 1], [0.02, 0.02, 0.9, 1])]
 write('depth', depth, binary)
+# A receiver at z=0 and a small offset occluder along the directional light.
+shadow_positions = [-1,-1,0, 1,-1,0, 1,1,0, -1,1,0,
+                    -0.4,0.2,0.3, 0,0.2,0.3, -0.2,0.6,0.3]
+shadow_data = struct.pack('<21f', *shadow_positions) + struct.pack('<9H',0,1,2,0,2,3,4,5,6)
+shadow = {'asset': {'version':'2.0'}, 'scene':0, 'scenes':[{'nodes':[0]}], 'nodes':[{'mesh':0}],
+          'meshes':[{'primitives':[{'attributes':{'POSITION':0},'indices':1,'material':0}]}],
+          'materials':[{'doubleSided':True, 'pbrMetallicRoughness':{'baseColorFactor':[0.8,0.8,0.8,1],
+                        'metallicFactor':0,'roughnessFactor':1}}],
+          'bufferViews':[{'buffer':0,'byteOffset':0,'byteLength':84},
+                         {'buffer':0,'byteOffset':84,'byteLength':18}],
+          'accessors':[{'bufferView':0,'componentType':5126,'count':7,'type':'VEC3',
+                        'min':[-1,-1,0],'max':[1,1,0.3]},
+                       {'bufferView':1,'componentType':5123,'count':9,'type':'SCALAR'}]}
+write('rt-shadow',shadow,shadow_data)
 (directory / 'invalid.gltf').write_text('{broken')
 print(f'Generated glTF fixtures in {directory}')
