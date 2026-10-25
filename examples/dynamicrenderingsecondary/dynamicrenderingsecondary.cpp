@@ -227,63 +227,73 @@ public:
 		prepared = true;
 	}
 
+	void buildSecondaryModelCommandBuffer(SecondaryCommandBuffer cmdBufferSet, VkCommandBufferInheritanceInfo &inheritanceInfo)
+	{
+		const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		const VkCommandBufferBeginInfo secCmdBufInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
+			.pInheritanceInfo = &inheritanceInfo,
+		};
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBufferSet.model, &secCmdBufInfo));
+		vkCmdSetViewport(cmdBufferSet.model, 0, 1, &viewport);
+		vkCmdSetScissor(cmdBufferSet.model, 0, 1, &scissor);
+		vkCmdBindDescriptorSets(cmdBufferSet.model, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+		vkCmdBindPipeline(cmdBufferSet.model, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+		model.draw(cmdBufferSet.model, vkglTF::RenderFlags::BindImages, pipelineLayout);
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBufferSet.model));
+	}
+
+	void buildSecondaryUICommandBuffer(SecondaryCommandBuffer cmdBufferSet, VkCommandBufferInheritanceInfo& inheritanceInfo)
+	{
+		const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		const VkCommandBufferBeginInfo secCmdBufInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
+			.pInheritanceInfo = &inheritanceInfo,
+		};
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBufferSet.ui, &secCmdBufInfo));
+		vkCmdSetViewport(cmdBufferSet.ui, 0, 1, &viewport);
+		vkCmdSetScissor(cmdBufferSet.ui, 0, 1, &scissor);
+		vkCmdBindDescriptorSets(cmdBufferSet.ui, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+		vkCmdBindPipeline(cmdBufferSet.ui, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+		drawUI(cmdBufferSet.ui);
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBufferSet.ui));
+	}
+
 	void buildCommandBuffer()
 	{
 		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);		
 		
-		SecondaryCommandBuffer secondaryCmdBuffer = secondaryCommandBuffers[currentBuffer];
-
 		// Just a demonstration, with this simple example, this won't gain performance, but shows how to do
 
-		{
+		VkCommandBufferInheritanceRenderingInfoKHR inheritanceRenderingInfo = {
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO_KHR,
+			.colorAttachmentCount = 1,
+			.pColorAttachmentFormats = &swapChain.colorFormat,
+			.depthAttachmentFormat = depthFormat,
+			.stencilAttachmentFormat = depthFormat,
+			.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+		};
 
-			VkCommandBufferInheritanceRenderingInfoKHR inheritanceRenderingInfo = {
-				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO_KHR,
-				.colorAttachmentCount = 1,
-				.pColorAttachmentFormats = &swapChain.colorFormat,
-				.depthAttachmentFormat = depthFormat,
-				.stencilAttachmentFormat = depthFormat,
-				.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
-			};
+		VkCommandBufferInheritanceInfo inheritanceInfo = {
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
+			.pNext = &inheritanceRenderingInfo
+		};
 
-			VkCommandBufferInheritanceInfo inheritanceInfo = {
-				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
-				.pNext = &inheritanceRenderingInfo
-			};
+		VkCommandBufferBeginInfo secCmdBufInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
+			.pInheritanceInfo = &inheritanceInfo,
+		};
 
-			VkCommandBufferBeginInfo secCmdBufInfo{
-				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-				.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
-				.pInheritanceInfo = &inheritanceInfo,
-			};
-			VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryCmdBuffer.model, &secCmdBufInfo));
+		SecondaryCommandBuffer secondaryCmdBufferSet = secondaryCommandBuffers[currentBuffer];
 
-			vkCmdSetViewport(secondaryCmdBuffer.model, 0, 1, &viewport);
-
-			vkCmdSetScissor(secondaryCmdBuffer.model, 0, 1, &scissor);
-
-			vkCmdBindDescriptorSets(secondaryCmdBuffer.model, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
-			vkCmdBindPipeline(secondaryCmdBuffer.model, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-			model.draw(secondaryCmdBuffer.model, vkglTF::RenderFlags::BindImages, pipelineLayout);
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCmdBuffer.model));
-
-			//
-
-			VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryCmdBuffer.ui, &secCmdBufInfo));
-
-			vkCmdSetViewport(secondaryCmdBuffer.ui, 0, 1, &viewport);
-			vkCmdSetScissor(secondaryCmdBuffer.ui, 0, 1, &scissor);
-
-			vkCmdBindDescriptorSets(secondaryCmdBuffer.ui, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
-			vkCmdBindPipeline(secondaryCmdBuffer.ui, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-			drawUI(secondaryCmdBuffer.ui);
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCmdBuffer.ui));
-		}
+		buildSecondaryModelCommandBuffer(secondaryCmdBufferSet, inheritanceInfo);
+		buildSecondaryUICommandBuffer(secondaryCmdBufferSet, inheritanceInfo);
 
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
 		
@@ -345,7 +355,7 @@ public:
 		vkCmdBeginRenderingKHR(cmdBuffer, &renderingInfo);
 
 		// No draw calls here, all done by executing the secondaries
-		std::vector<VkCommandBuffer> cmdBuffers = { secondaryCmdBuffer.model, secondaryCmdBuffer .ui };
+		std::vector<VkCommandBuffer> cmdBuffers = { secondaryCmdBufferSet.model, secondaryCmdBufferSet.ui };
 		vkCmdExecuteCommands(cmdBuffer, static_cast<uint32_t>(cmdBuffers.size()), cmdBuffers.data());
 
 		vkCmdEndRenderingKHR(cmdBuffer);
