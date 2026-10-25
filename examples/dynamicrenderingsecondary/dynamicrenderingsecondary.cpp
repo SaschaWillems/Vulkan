@@ -1,8 +1,6 @@
 /*
  * Vulkan Example - Using secondary command buffers with VK_KHR_dynamic_rendering
  *
- * @todo: rebase on multithreading sample
- * 
  * Copyright (C) 2026 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
@@ -10,7 +8,7 @@
 
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
-
+#include <thread>
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -26,6 +24,8 @@ public:
 		VkCommandBuffer ui{ VK_NULL_HANDLE };
 	};
 	std::array<SecondaryCommandBuffer, maxConcurrentFrames> secondaryCommandBuffers{};
+	// We'll record secondary command buffers on multiple threads, and command pools need to be per thread
+	std::array<VkCommandPool, 2> commandPools{};
 
 	struct UniformData {
 		glm::mat4 projection;
@@ -73,6 +73,9 @@ public:
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 			for (auto& buffer : uniformBuffers) {
 				buffer.destroy();
+			}
+			for (auto i = 0; i < commandPools.size(); i++) {
+				vkDestroyCommandPool(device, commandPools[i], nullptr);
 			}
 		}
 	}
@@ -208,15 +211,26 @@ public:
 		vkCmdBeginRenderingKHR = reinterpret_cast<PFN_vkCmdBeginRenderingKHR>(vkGetDeviceProcAddr(device, "vkCmdBeginRenderingKHR"));
 		vkCmdEndRenderingKHR = reinterpret_cast<PFN_vkCmdEndRenderingKHR>(vkGetDeviceProcAddr(device, "vkCmdEndRenderingKHR"));
 
-		// @todo
-		const VkCommandBufferAllocateInfo cmdBufAllocateInfo = {
+		// We'll record secondary command buffers on multiple threads, and command pools need to be per thread
+		const VkCommandPoolCreateInfo cmdPoolCI = {
+			.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+			.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+			.queueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics
+		};
+		for (auto i = 0; i < commandPools.size(); i++) {
+			vkCreateCommandPool(device, &cmdPoolCI, nullptr, &commandPools[i]);
+		}
+
+		// Allocate secondary command buffers
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo = {
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-			.commandPool = cmdPool,
 			.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY,
 			.commandBufferCount = 1
 		};
-		for (uint32_t i = 0; i < maxConcurrentFrames; i++) {
+		for (auto i = 0; i < maxConcurrentFrames; i++) {
+			cmdBufAllocateInfo.commandPool = commandPools[0];
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffers[i].model));
+			cmdBufAllocateInfo.commandPool = commandPools[1];
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffers[i].ui));
 		}
 
@@ -227,8 +241,9 @@ public:
 		prepared = true;
 	}
 
-	void buildSecondaryModelCommandBuffer(SecondaryCommandBuffer cmdBufferSet, VkCommandBufferInheritanceInfo &inheritanceInfo)
+	void buildSecondaryModelCommandBuffer(SecondaryCommandBuffer& cmdBufferSet, VkCommandBufferInheritanceInfo& inheritanceInfo)
 	{
+		SecondaryCommandBuffer secondaryCmdBufferSet = secondaryCommandBuffers[currentBuffer];
 		const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 		const VkCommandBufferBeginInfo secCmdBufInfo{
@@ -245,7 +260,7 @@ public:
 		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBufferSet.model));
 	}
 
-	void buildSecondaryUICommandBuffer(SecondaryCommandBuffer cmdBufferSet, VkCommandBufferInheritanceInfo& inheritanceInfo)
+	void buildSecondaryUICommandBuffer(SecondaryCommandBuffer& cmdBufferSet, VkCommandBufferInheritanceInfo& inheritanceInfo)
 	{
 		const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
@@ -268,8 +283,6 @@ public:
 		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);		
 		
-		// Just a demonstration, with this simple example, this won't gain performance, but shows how to do
-
 		VkCommandBufferInheritanceRenderingInfoKHR inheritanceRenderingInfo = {
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO_KHR,
 			.colorAttachmentCount = 1,
@@ -292,8 +305,12 @@ public:
 
 		SecondaryCommandBuffer secondaryCmdBufferSet = secondaryCommandBuffers[currentBuffer];
 
-		buildSecondaryModelCommandBuffer(secondaryCmdBufferSet, inheritanceInfo);
-		buildSecondaryUICommandBuffer(secondaryCmdBufferSet, inheritanceInfo);
+		// Record secondary command buffers in parallel
+		// This is just for demonstration purposes, for such a simple use-case this won't improve performance (and most likel will be slower)
+		std::thread threadA(&VulkanExample::buildSecondaryModelCommandBuffer, this, std::ref(secondaryCmdBufferSet), std::ref(inheritanceInfo));
+		std::thread threadB(&VulkanExample::buildSecondaryUICommandBuffer, this, std::ref(secondaryCmdBufferSet), std::ref(inheritanceInfo));
+		threadA.join();
+		threadB.join();
 
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
 		
