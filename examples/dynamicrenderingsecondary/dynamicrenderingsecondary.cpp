@@ -21,7 +21,11 @@ public:
 	VkPhysicalDeviceDynamicRenderingFeaturesKHR enabledDynamicRenderingFeaturesKHR{};
 
 	vkglTF::Model model;
-	std::array<VkCommandBuffer, maxConcurrentFrames> secondaryCmdBufs{};
+	struct SecondaryCommandBuffer {
+		VkCommandBuffer model{ VK_NULL_HANDLE };
+		VkCommandBuffer ui{ VK_NULL_HANDLE };
+	};
+	std::array<SecondaryCommandBuffer, maxConcurrentFrames> secondaryCommandBuffers{};
 
 	struct UniformData {
 		glm::mat4 projection;
@@ -205,13 +209,16 @@ public:
 		vkCmdEndRenderingKHR = reinterpret_cast<PFN_vkCmdEndRenderingKHR>(vkGetDeviceProcAddr(device, "vkCmdEndRenderingKHR"));
 
 		// @todo
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo = {
+		const VkCommandBufferAllocateInfo cmdBufAllocateInfo = {
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 			.commandPool = cmdPool,
 			.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY,
-			.commandBufferCount = maxConcurrentFrames
-		};			
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, secondaryCmdBufs.data()));
+			.commandBufferCount = 1
+		};
+		for (uint32_t i = 0; i < maxConcurrentFrames; i++) {
+			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffers[i].model));
+			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffers[i].ui));
+		}
 
 		loadAssets();
 		prepareUniformBuffers();
@@ -222,13 +229,15 @@ public:
 
 	void buildCommandBuffer()
 	{
-		// nope
-		//vkQueueWaitIdle(queue);
-
 		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);		
+		
+		SecondaryCommandBuffer secondaryCmdBuffer = secondaryCommandBuffers[currentBuffer];
+
+		// Just a demonstration, with this simple example, this won't gain performance, but shows how to do
 
 		{
+
 			VkCommandBufferInheritanceRenderingInfoKHR inheritanceRenderingInfo = {
 				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO_KHR,
 				.colorAttachmentCount = 1,
@@ -248,39 +257,32 @@ public:
 				.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
 				.pInheritanceInfo = &inheritanceInfo,
 			};
-			VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryCmdBufs[currentBuffer], &secCmdBufInfo));
+			VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryCmdBuffer.model, &secCmdBufInfo));
 
-			vkCmdSetViewport(secondaryCmdBufs[currentBuffer], 0, 1, &viewport);
+			vkCmdSetViewport(secondaryCmdBuffer.model, 0, 1, &viewport);
 
-			vkCmdSetScissor(secondaryCmdBufs[currentBuffer], 0, 1, &scissor);
+			vkCmdSetScissor(secondaryCmdBuffer.model, 0, 1, &scissor);
 
-			vkCmdBindDescriptorSets(secondaryCmdBufs[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
-			vkCmdBindPipeline(secondaryCmdBufs[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+			vkCmdBindDescriptorSets(secondaryCmdBuffer.model, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+			vkCmdBindPipeline(secondaryCmdBuffer.model, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-			model.draw(secondaryCmdBufs[currentBuffer], vkglTF::RenderFlags::BindImages, pipelineLayout);
+			model.draw(secondaryCmdBuffer.model, vkglTF::RenderFlags::BindImages, pipelineLayout);
 
-			VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCmdBufs[currentBuffer]));
+			VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCmdBuffer.model));
 
 			//
 
-			//if (!secondaryUICmdBuf) {
-			//	VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-			//	VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryUICmdBuf));
-			//}
+			VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryCmdBuffer.ui, &secCmdBufInfo));
 
-			/*
-			VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryUICmdBuf, &secCmdBufInfo));
+			vkCmdSetViewport(secondaryCmdBuffer.ui, 0, 1, &viewport);
+			vkCmdSetScissor(secondaryCmdBuffer.ui, 0, 1, &scissor);
 
-			vkCmdSetViewport(secondaryUICmdBuf, 0, 1, &viewport);
-			vkCmdSetScissor(secondaryUICmdBuf, 0, 1, &scissor);
+			vkCmdBindDescriptorSets(secondaryCmdBuffer.ui, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+			vkCmdBindPipeline(secondaryCmdBuffer.ui, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-			vkCmdBindDescriptorSets(secondaryUICmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
-			vkCmdBindPipeline(secondaryUICmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+			drawUI(secondaryCmdBuffer.ui);
 
-			drawUI(secondaryUICmdBuf);
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(secondaryUICmdBuf));
-			*/
+			VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCmdBuffer.ui));
 		}
 
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
@@ -343,7 +345,7 @@ public:
 		vkCmdBeginRenderingKHR(cmdBuffer, &renderingInfo);
 
 		// No draw calls here, all done by executing the secondaries
-		std::vector<VkCommandBuffer> cmdBuffers = { secondaryCmdBufs[currentBuffer]/*, secondaryUICmdBuf*/};
+		std::vector<VkCommandBuffer> cmdBuffers = { secondaryCmdBuffer.model, secondaryCmdBuffer .ui };
 		vkCmdExecuteCommands(cmdBuffer, static_cast<uint32_t>(cmdBuffers.size()), cmdBuffers.data());
 
 		vkCmdEndRenderingKHR(cmdBuffer);
