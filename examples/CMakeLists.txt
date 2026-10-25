@@ -113,6 +113,7 @@ set(EXAMPLES
 	dynamicrendering
 	dynamicrenderinglocalread	
 	dynamicrenderingmultisampling
+	dynamicrenderingsecondary
 	dynamicstate
 	dynamicuniformbuffer	
 	fragmentshaderbarycentrics
