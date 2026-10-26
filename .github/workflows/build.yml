@@ -1,5 +1,13 @@
 name: Build Project
 
+env:
+  GH_TOKEN: ${{github.token}}
+  Branch: ${{github.ref_name}}
+  Platform: x64
+  Configuration: Release
+  Artifacts: build\bin
+  Title: Vulkan Samples
+
 on:
   push:
     branches:
@@ -7,6 +15,7 @@ on:
   pull_request:
     branches:
       - master
+  workflow_dispatch:
 
 jobs:
   build_ubuntu_x11:
@@ -30,21 +39,68 @@ jobs:
 
   build_windows:
     name: Build Windows
-    runs-on: windows-latest
-
+    runs-on: windows-2025
     steps:
-      - uses: ilammy/msvc-dev-cmd@v1
 
-      - uses: actions/checkout@v4
-        with:
-          submodules: "recursive"
+    - name: Clone repo and submodules
+      run: git clone https://${{github.repository_owner}}:${{github.token}}@github.com/${{github.repository}}.git "${{github.workspace}}" --branch ${{env.Branch}} --recurse-submodules
 
-      - name: Build
-        env:
-          TARGET_PLATFORM: windows
-        run: |
-          cmake .
-          cmake --build .
+    - name: Get current date, commit hash and count
+      run: |
+        echo "FirstCommitHash=$(git rev-list --max-parents=0 HEAD --first-parent)" >> $env:GITHUB_ENV
+        echo "CommitHash=$(git rev-parse HEAD)" >> $env:GITHUB_ENV
+        echo "CommitHashShort=$(git rev-parse --short=7 HEAD)" >> $env:GITHUB_ENV
+        echo "CommitCount=$(git rev-list --count HEAD)" >> $env:GITHUB_ENV
+        echo "CommitDate=$(git show -s --date=format:'%Y-%m-%d' --format=%cd)" >> $env:GITHUB_ENV
+
+    - uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Configure
+      run: cmake -A "${{env.Platform}}" -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.Configuration}} -DUSE_RELATIVE_ASSET_PATH=ON
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.Configuration}}
+
+    - name: Deploy
+      shell: cmd
+      run: |
+        move ${{env.Artifacts}}\${{env.Configuration}} ${{env.Artifacts}}\bin
+        xcopy "assets\" "${{env.Artifacts}}\assets\" /s
+        xcopy "shaders\" "${{env.Artifacts}}\shaders\" /s
+
+    - name: Upload artifacts to GitHub
+      uses: actions/upload-artifact@v4
+      with:
+        name: "${{env.Title}}_r${{env.CommitCount}}@${{env.CommitHashShort}}"
+        path: "${{github.workspace}}/${{env.Artifacts}}/"
+
+    - name: Compress artifacts
+      if: github.event_name == 'push'
+      run: |
+        mkdir Release
+        7z a "Release/${{env.Title}}.zip" "${{github.workspace}}/${{env.Artifacts}}/*" -mx=9
+        cp "Release/${{env.Title}}.zip" "Release/${{env.Title}}_r${{env.CommitCount}}@${{env.CommitHashShort}}.zip"
+
+    - name: Purge tag - latest-${{env.Branch}}
+      if: github.event_name == 'push'
+      run: |
+        gh release delete latest-${{env.Branch}} --repo ${{github.repository}} --cleanup-tag --yes || true
+
+    - name: Release - archive-${{env.Branch}}
+      if: github.event_name == 'push'
+      run: |
+        gh release create archive-${{env.Branch}} --repo ${{github.repository}} --target ${{env.FirstCommitHash}} --latest=false --prerelease --title "${{env.Title}} ${{env.Branch}} build archive" --notes "Latest build: https://github.com/${{github.repository}}/releases/latest-${{env.Branch}}
+        Build logs: https://github.com/${{github.repository}}/actions" || true
+        gh release edit archive-${{env.Branch}} --repo ${{github.repository}} --target ${{env.FirstCommitHash}} --latest=false --prerelease --title "${{env.Title}} ${{env.Branch}} build archive" --notes "Latest build: https://github.com/${{github.repository}}/releases/latest-${{env.Branch}}
+        Build logs: https://github.com/${{github.repository}}/actions" || true
+        gh release upload archive-${{env.Branch}} --repo ${{github.repository}} --clobber "Release/${{env.Title}}_r${{env.CommitCount}}@${{env.CommitHashShort}}.zip"
+
+    - name: Release - latest-${{env.Branch}}
+      if: github.event_name == 'push'
+      run: |
+        gh release create latest-${{env.Branch}} --repo ${{github.repository}} --target ${{env.CommitHash}} --generate-notes --latest=true --title "${{env.Title}} r${{env.CommitCount}}@${{env.CommitHashShort}}" --notes "Build archive: https://github.com/${{github.repository}}/releases/tag/archive-${{env.Branch}}
+        Build log: https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+        gh release upload latest-${{env.Branch}} --repo ${{github.repository}} --clobber "Release/${{env.Title}}.zip"
 
   build_macOS:
     name: Build macOS
