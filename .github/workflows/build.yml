@@ -43,7 +43,7 @@ jobs:
     steps:
 
     - name: Clone repo and submodules
-      run: git clone https://${{github.repository_owner}}:${{github.token}}@github.com/${{github.repository}}.git "${{github.workspace}}" --branch ${{env.Branch}} --recurse-submodules
+      run: git clone https://github.com/SaschaWillems/Vulkan.git "${{github.workspace}}" --branch ${{env.Branch}} --recurse-submodules
 
     - name: Get current date, commit hash and count
       run: |
