@@ -2520,7 +2520,7 @@ bool FileExists(const std::string &abs_filename, void *) {
     } else {
         return false;
     }
-#endif
+#else
 #ifdef _WIN32
 #if defined(_MSC_VER) || defined(__GLIBCXX__)
   FILE *fp = nullptr;
@@ -2545,6 +2545,7 @@ bool FileExists(const std::string &abs_filename, void *) {
   } else {
     ret = false;
   }
+#endif
 #endif
 
   return ret;
@@ -2630,9 +2631,6 @@ bool ReadWholeFile(std::vector<unsigned char> *out, std::string *err,
   }
 #else
 #ifdef __OHOS__
-
-
-    // 读取全文件；
     if (rawfile_manager) {
         RawFile* rawfile = OH_ResourceManager_OpenRawFile(rawfile_manager, filepath.c_str());
         if (!rawfile) {
@@ -2657,7 +2655,7 @@ bool ReadWholeFile(std::vector<unsigned char> *out, std::string *err,
         }
         return false;
     }
-#endif
+#else
 #ifdef _WIN32
 #if defined(__GLIBCXX__)  // mingw
   int file_descriptor =
@@ -2701,6 +2699,7 @@ bool ReadWholeFile(std::vector<unsigned char> *out, std::string *err,
          static_cast<std::streamsize>(sz));
 
   return true;
+#endif
 #endif
 }
 

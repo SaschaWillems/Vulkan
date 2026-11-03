@@ -266,7 +266,18 @@ public:
 		AAsset_close(asset);
 		result = ktxTexture_CreateFromMemory(textureData, size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
 		delete[] textureData;
-
+#elif defined (__OHOS__)
+           // Load texture from HarmonyOS raw resources using ResourceManager singleton
+        NativeResourceManager* resourceMgr = ResourceManager::getInstance().getNativeResourceManager();
+        RawFile* rawFile = OH_ResourceManager_OpenRawFile(resourceMgr, filename.c_str());
+        assert(rawFile);
+        size_t size = OH_ResourceManager_GetRawFileSize(rawFile);
+        assert(size > 0);
+        ktx_uint8_t *textureData = new ktx_uint8_t[size];
+        OH_ResourceManager_ReadRawFile(rawFile, textureData, size);
+        OH_ResourceManager_CloseRawFile(rawFile);
+        result = ktxTexture_CreateFromMemory(textureData, size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
+        delete[] textureData;
 #else
 		result = ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
 #endif

@@ -14,6 +14,10 @@
 #include <android_native_app_glue.h>
 #include <android/log.h>
 #include "VulkanAndroid.h"
+#elif defined(VK_USE_PLATFORM_OHOS)
+#include <ace/xcomponent/native_interface_xcomponent.h>
+#include <rawfile/raw_file_manager.h>
+#include "VulkanOHOS.h"
 #endif
 
 #include <stdio.h>
@@ -41,6 +45,8 @@ android_app* androidapp;
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 #define LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "vulkanExample", __VA_ARGS__))
+#elif defined(VK_USE_PLATFORM_OHOS)
+#define LOG(...) ((void)OH_LOG_Print(LOG_APP, LOG_INFO, APP_LOG_DOMAIN, APP_LOG_TAG, __VA_ARGS__))
 #else
 #define LOG(...) printf(__VA_ARGS__)
 #endif
@@ -617,6 +623,52 @@ void android_main(android_app* state) {
 		}
 	}
 }
+#elif defined(VK_USE_PLATFORM_OHOS)
+
+void OnSurfaceCreatedCB(OH_NativeXComponent *component, void *window) {
+    VulkanExample* vulkanExample = new VulkanExample();
+    delete vulkanExample; 
+    LOGD("OnSurfaceCreatedCB");
+}
+
+extern "C" napi_value Init(napi_env env, napi_value exports) {
+    napi_status status;
+    napi_value exportInstance = nullptr;
+    OH_NativeXComponent *nativeXComponent = nullptr;
+    int32_t ret;
+    char idStr[OH_XCOMPONENT_ID_LEN_MAX + 1] = {};
+    uint64_t idSize = OH_XCOMPONENT_ID_LEN_MAX + 1;
+    status = napi_get_named_property(env, exports, OH_NATIVE_XCOMPONENT_OBJ, &exportInstance);
+    if (status != napi_ok) {
+        LOGE("Export: napi_get_named_property fail");
+    }
+    status = napi_unwrap(env, exportInstance, reinterpret_cast<void **>(&nativeXComponent));
+    napi_value global;
+    status = napi_get_global(env, &global);
+    status = napi_get_named_property(env, global, "globalThis", &global);
+    napi_value context;
+    status = napi_get_named_property(env, global, "context", &context);
+    napi_value resourceManager = NULL;
+    status = napi_get_named_property(env, context, "resourceManager", &resourceManager);
+    NativeResourceManager *nativeResourceManager = OH_ResourceManager_InitNativeResourceManager(env, resourceManager);
+    ResourceManager::getInstance().initialize(nativeResourceManager);
+    static OH_NativeXComponent_Callback callback;
+    callback.OnSurfaceCreated = OnSurfaceCreatedCB;
+    OH_NativeXComponent_RegisterCallback(nativeXComponent, &callback);
+    return exports;
+}
+
+static napi_module demoModule = {
+    .nm_version = 1,
+    .nm_flags = 0,
+    .nm_filename = nullptr,
+    .nm_register_func = Init,
+    .nm_modname = "nativerender_triangle",
+    .nm_priv = ((void *)0),
+    .reserved = {0},
+};
+
+extern "C" __attribute__((constructor)) void RegisterEntryModule(void) { napi_module_register(&demoModule); } 
 #else
 int main(int argc, char* argv[]) {
 	commandLineParser.add("help", { "--help" }, 0, "Show help");

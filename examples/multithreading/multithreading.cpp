@@ -1,7 +1,9 @@
 /*
 * Vulkan Example - Multi threaded command buffer generation
 *
-* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
+* Note: See the dynamicrenderingsecondary sample for how to use secondary command buffers with dynamic rendering
+* 
+* Copyright (C) 2016-2026 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */

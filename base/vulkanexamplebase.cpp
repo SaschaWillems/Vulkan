@@ -482,7 +482,7 @@ void VulkanExampleBase::renderLoop()
 				lastTimestamp = tEnd;
 			}
 
-            // 更新UI;
+            // update UI;
             updateOverlay();
 
 			bool updateView = false;
@@ -942,7 +942,7 @@ VulkanExampleBase::VulkanExampleBase()
 					static const VkBool32 layerSettingOn = VK_TRUE;
 					layerSetting.pValues = &layerSettingOn;
 					enabledLayerSettings.push_back(layerSetting);
-					
+
 					break;
 				}
 			}
@@ -950,7 +950,7 @@ VulkanExampleBase::VulkanExampleBase()
 	}
 #endif
 
-#if !defined(VK_USE_PLATFORM_ANDROID_KHR) && !defined(VK_USE_PLATFORM_OHOS) 
+#if !defined(VK_USE_PLATFORM_ANDROID_KHR) && !defined(VK_USE_PLATFORM_OHOS)
 	// Check for a valid asset path
 	struct stat info;
 	if (stat(getAssetPath().c_str(), &info) != 0)
@@ -1666,11 +1666,11 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 void VulkanExampleBase::handleAppInput(OH_NativeXComponent *component, void *window, void* pThis) {
     OH_NativeXComponent_TouchEvent touchEvent;
 
-    // 获取触摸事件信息
+    // get touchEvents
     int32_t ret = OH_NativeXComponent_GetTouchEvent(component, window, &touchEvent);
     if (ret != OH_NATIVEXCOMPONENT_RESULT_SUCCESS) {
         return;
-    } 
+    }
     VulkanExampleBase* vulkanExample = static_cast<VulkanExampleBase*>(pThis);
     LOGD("DispatchTouchEventCB, touchEvent.type = %{public}u, touchEvent.numPoints = %{public}u", touchEvent.type, touchEvent.numPoints);
     switch (touchEvent.type) {
@@ -1691,7 +1691,7 @@ void VulkanExampleBase::handleAppInput(OH_NativeXComponent *component, void *win
                 if ((dx * dx + dy * dy) < deadZone) {
                     vulkanExample->mouseState.position.x = touchEvent.screenX;
                     vulkanExample->mouseState.position.y = touchEvent.screenY;
-                    vulkanExample->mouseState.buttons.left = true;
+                    vulkanExample->mouseState.buttons.left = false;
                 }
             };
             break;
@@ -1716,6 +1716,7 @@ void VulkanExampleBase::handleAppInput(OH_NativeXComponent *component, void *win
             vulkanExample->touchPos.y = touchEvent.screenY;
             vulkanExample->mouseState.position.x = touchEvent.screenX;
             vulkanExample->mouseState.position.y = touchEvent.screenY;
+        	vulkanExample->mouseState.buttons.left = true;
             break;
         }
         case OH_NativeXComponent_TouchEventType::OH_NATIVEXCOMPONENT_MOVE: {
@@ -2597,7 +2598,7 @@ struct xdg_surface *VulkanExampleBase::setupWindow()
 	if (settings.fullscreen)
 	{
 		xdg_toplevel_set_fullscreen(xdg_toplevel, NULL);
-	}	
+	}
 	wl_surface_commit(surface);
 	wl_display_flush(display);
 

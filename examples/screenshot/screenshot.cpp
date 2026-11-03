@@ -452,8 +452,12 @@ public:
 	{
 		if (overlay->header("Functions")) {
 			if (overlay->button("Take screenshot")) {
-				//saveScreenshot("screenshot.ppm");
-				screenshotRequested = true;
+#if defined (VK_USE_PLATFORM_OHOS)
+                std::string screenshotPath = vks::OHOS::filesDir + "/screenshot.ppm";
+                saveScreenshot(screenshotPath.c_str());
+#else
+				saveScreenshot("screenshot.ppm");
+#endif
 			}
 			if (screenshotSaved) {
 				overlay->text("Screenshot saved as screenshot.ppm");

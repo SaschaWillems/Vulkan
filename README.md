@@ -58,7 +58,7 @@ git submodule update
 
 ## Building
 
-The repository contains everything required to compile and build the examples on Windows, Android, iOS and macOS (using MoltenVK) using a C++ compiler that supports C++20.
+The repository contains everything required to compile and build the examples on Windows, Linux, Android, iOS, macOS and OpenHarmony using a C++ compiler that supports C++20.
 
 See [BUILD.md](BUILD.md) for details on how to build for the different platforms.
 
@@ -456,6 +456,10 @@ Vulkan is an extensible api with lots of functionality added by extensions. Thes
 - [Dynamic rendering with multi sampling](examples/dynamicrenderingmultisampling/) - `VK_KHR_dynamic_rendering`
 
     Based on the dynamic rendering sample, this sample shows how to do implement multi sampling with dynamic rendering.
+
+- [Dynamic rendering with secondary command bufferss](examples/dynamicrenderingsecondary/) - `VK_KHR_dynamic_rendering`
+
+    Based on the dynamic rendering sample, this sample shows how to implement multi-threaded secondary commmand buffer creation with dynamic rendering.
 
 - [Graphics pipeline library](./examples/graphicspipelinelibrary) - `VK_EXT_graphics_pipeline_library`
     

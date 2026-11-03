@@ -1,3 +1,10 @@
+/*
+ * Copyright (C) 2018 by Sascha Willems - www.saschawillems.de
+ *
+ * HarmonyOS port Copyright (C) 2026 by luzehui
+ *
+ * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ */
 import display from '@ohos.display';
 
 const DOMAIN = 0x0000;
