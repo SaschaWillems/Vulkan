@@ -108,6 +108,7 @@ set(EXAMPLES
 	descriptorheapuntyped
 	descriptorindexing
 	descriptorsets
+	deviceaddresscommands
 	displacement
 	distancefieldfonts
 	dynamicrendering
