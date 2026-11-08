@@ -1,3 +1,8 @@
+<!--
+Copyright (c) 2026, Sascha Willems
+SPDX-License-Identifier: MIT
+-->
+
 # Vulkan C++ examples and demos
 
 A comprehensive collection of open source C++ examples for [Vulkan®](https://www.vulkan.org), the low-level graphics and compute API from Khronos.
@@ -502,6 +507,10 @@ Vulkan is an extensible api with lots of functionality added by extensions. Thes
 - [Fragment shader barycentrics](./examples/fragmentshaderbarycentrics/) - `VK_KHR_fragment_shader_barycentric`
 
     Demonstrates how to access barycentric coordinates in a fragment shader to create a wireframe visual effect.
+
+- [Device address commands](./examples/deviceaddresscommands/) - `VK_KHR_device_address_commands`
+
+    Builds upon buffer device address and demonstrates how to use device addresses for additional buffer types like vertex, index and indirect draw commands.
 
 ### Effects
 

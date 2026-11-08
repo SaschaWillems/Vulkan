@@ -14,14 +14,12 @@ layout (location = 1) in vec3 inColor;
 
 layout (buffer_reference, scalar) readonly buffer MatrixReference {
 	mat4 matrix;
+	mat4 modelMatrix[2];
 };
 
 layout (push_constant) uniform PushConstants
 {
-	// Pointer to the buffer with the scene's MVP matrix
 	MatrixReference sceneDataReference;
-	// Pointer to the buffer for the data for each model
-	MatrixReference modelDataReference;
 } pushConstants;
 
 layout (location = 0) out vec3 outColor;
@@ -29,8 +27,6 @@ layout (location = 0) out vec3 outColor;
 void main() 
 {
 	MatrixReference sceneData = pushConstants.sceneDataReference;
-	MatrixReference modelData = pushConstants.modelDataReference;
-
 	outColor = inColor;
-	gl_Position = sceneData.matrix * modelData.matrix * vec4(inPos.xyz, 1.0);
+	gl_Position = sceneData.matrix * sceneData.modelMatrix[gl_InstanceIndex] * vec4(inPos.xyz, 1.0);
 }
