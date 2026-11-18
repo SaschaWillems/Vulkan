@@ -91,9 +91,9 @@ public:
 	// Shadow map dimension
 #if defined(__ANDROID__)
 	// Use a smaller size on Android for performance reasons
-	const uint32_t shadowMapize{ 1024 };
+	const uint32_t shadowMapSize{ 1024 };
 #else
-	const uint32_t shadowMapize{ 2048 };
+	const uint32_t shadowMapSize{ 2048 };
 #endif
 
 	VulkanExample() : VulkanExampleBase()
@@ -195,8 +195,8 @@ public:
 	// The depth attachment of this framebuffer will then be used to sample from in the fragment shader of the shadowing pass
 	void prepareOffscreenFramebuffer()
 	{
-		offscreenPass.width = shadowMapize;
-		offscreenPass.height = shadowMapize;
+		offscreenPass.width = shadowMapSize;
+		offscreenPass.height = shadowMapSize;
 
 		// For shadow mapping we only need a depth attachment
 		VkImageCreateInfo image = vks::initializers::imageCreateInfo();
