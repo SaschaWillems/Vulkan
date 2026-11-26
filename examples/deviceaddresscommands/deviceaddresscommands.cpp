@@ -225,7 +225,7 @@ public:
 	{
 		for (uint32_t i = 0; i < maxConcurrentFrames; i++) {
 			// Note that we don't use this buffer for uniforms but rather pass it's address as a reference to the shader, so isntead of the uniform buffer usage we use a different flag
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &scene.buffers[i], sizeof(glm::mat4)));
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &scene.buffers[i], sizeof(scene.matrices)));
 			VK_CHECK_RESULT(scene.buffers[i].map());
 			scene.buffers[i].deviceAddress = getBufferDeviceAddress(scene.buffers[i].buffer);
 		}
@@ -276,6 +276,18 @@ public:
 
 		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
 
+		VkDeviceAddressRangeKHR indirectRange{
+			.address = indirectDrawBuffer.deviceAddress,
+			.size = indirectDrawBuffer.size
+		};
+
+		std::array<VkDrawIndexedIndirectCommand, 2> indirectDrawCommands{
+			VkDrawIndexedIndirectCommand{.indexCount = 3, .instanceCount = 1},
+			VkDrawIndexedIndirectCommand{.indexCount = 3, .instanceCount = 1, .vertexOffset = 3, .firstInstance = 1 },
+		};
+
+		vkCmdUpdateMemoryKHR(cmdBuffer, &indirectRange, 0, indirectDrawBufferSize, indirectDrawCommands.data());
+
 		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -294,18 +306,6 @@ public:
 			.addressFlags = VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,
 			.drawCount = 2
 		};
-
-		VkDeviceAddressRangeKHR indirectRange{
-			.address = indirectDrawBuffer.deviceAddress,
-			.size = indirectDrawBuffer.size
-		};
-
-		std::array<VkDrawIndexedIndirectCommand, 2> indirectDrawCommands{
-			VkDrawIndexedIndirectCommand{.indexCount = 3, .instanceCount = 1},
-			VkDrawIndexedIndirectCommand{.indexCount = 3, .instanceCount = 1, .vertexOffset = 3, .firstInstance = 1 },
-		};
-
-		vkCmdUpdateMemoryKHR(cmdBuffer, &indirectRange, 0, indirectDrawBufferSize, indirectDrawCommands.data());
 
 		// Vertex and index buffers can now be bound via their buffer device address instead
 		VkBindVertexBuffer3InfoKHR vertexBindingInfo{
